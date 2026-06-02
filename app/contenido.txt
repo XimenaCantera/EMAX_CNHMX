@@ -1,0 +1,3 @@
+En esta carpeta se coloca la Aplicación Web: 
+
+-> Código fuente de la aplicación (e.g., app.py, assets).

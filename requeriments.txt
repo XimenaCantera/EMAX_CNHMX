@@ -1,0 +1,6 @@
+Lista de todas las librerías de Python utilizadas y su justificación
+
+
+1. 
+2. 
+3. 

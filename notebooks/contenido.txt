@@ -1,0 +1,4 @@
+Se espera colocar los notebooks utilizados para nuestro Proceso de Análisis: 
+
+-> Archivos ".ipynb" que muestren el proceso de Preparación de Datos (Limpieza y Transformación)
+-> El Entrenamiento y Evaluación de Modelos (Métricas).

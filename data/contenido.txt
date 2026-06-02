@@ -1,0 +1,3 @@
+Se espera colocar en esta carpeta nuestros Datos Limpios:
+
+Ficheros CSV o data lake resultante del proceso de limpieza (cleaned_data.csv).
