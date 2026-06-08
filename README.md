@@ -1,7 +1,9 @@
 # EMAX_CNHMX
 
 José Emiliano Díaz Gutiérrez
+
 Ximena Cantera Reséndiz
+
 Ma. Fernanda Barba De Los Santos
 
 # Descripción de plataforma / Características principales
