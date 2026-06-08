@@ -1,0 +1,86 @@
+.sidebar {
+  width: 260px;
+  background-color: var(--color-primary);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.sidebar-header {
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.sidebar-header h1 {
+  color: white;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+}
+
+.sidebar-subtitle {
+  color: #A5A6BA;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 var(--space-md);
+  flex-grow: 1;
+  margin-top: var(--space-md);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  color: #A5A6BA;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-item.active {
+  background-color: var(--color-secondary);
+  color: white;
+}
+
+.sidebar-footer {
+  padding: var(--space-lg);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.user-status {
+  font-size: 0.75rem;
+  color: #A5A6BA;
+}

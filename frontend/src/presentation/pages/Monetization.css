@@ -1,0 +1,211 @@
+.monetization-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+}
+
+.kpi-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.kpi-trend, .kpi-unit {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.bg-critical-light {
+  background-color: #FEF2F2;
+  border-color: #FCA5A5;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-bg-icon {
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  opacity: 0.1;
+}
+
+.opacity-20 { opacity: 0.2; }
+
+.filters-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.filters-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-right: var(--space-md);
+  border-right: 1px solid var(--color-border);
+}
+
+.filter-pills {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  background-color: var(--color-neutral);
+  color: var(--color-text-main);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.filter-pill:hover {
+  background-color: #E5E7EB;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 2.5fr 1fr;
+  gap: var(--space-lg);
+}
+
+.unit-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.unit-icon-box {
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-neutral);
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.25rem;
+}
+
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-dot::before {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-operating::before { background-color: #10B981; }
+.status-operating { color: #10B981; background-color: #D1FAE5; padding: 2px 8px; border-radius: 12px; }
+
+.status-maintenance::before { background-color: #F59E0B; }
+.status-maintenance { color: #F59E0B; background-color: #FEF3C7; padding: 2px 8px; border-radius: 12px; }
+
+.status-stopped::before { background-color: #6B7280; }
+.status-stopped { color: #6B7280; background-color: #F3F4F6; padding: 2px 8px; border-radius: 12px; }
+
+.risk-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+}
+
+.risk-high {
+  color: var(--color-critical-text);
+  border-color: var(--color-critical-text);
+  background-color: transparent;
+}
+
+.risk-medium {
+  color: var(--color-warning-text);
+  border-color: var(--color-warning-text);
+  background-color: transparent;
+}
+
+.side-panels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.urgency-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.urgency-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.urgency-info {
+  display: flex;
+  justify-content: space-between;
+}
+
+.progress-bg {
+  height: 6px;
+  background-color: var(--color-neutral);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+}
+
+.bg-critical { background-color: var(--color-secondary); }
+.bg-warning { background-color: #F59E0B; }
+.bg-neutral { background-color: #9CA3AF; }
+
+.action-highlight-card {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+}
+
+.action-highlight-card .text-white { color: white; }
+
+.action-text {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.btn-light {
+  background-color: white;
+  color: var(--color-primary);
+  justify-content: space-between;
+}
+.btn-light:hover {
+  background-color: var(--color-neutral);
+}
