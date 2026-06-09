@@ -35,10 +35,11 @@ def get_fuga_data():
     df_table = df_mantenimientos[['ALIAS', 'DISTRIBUIDOR', 'ESTATUS', 'retraso_horas', 'Frecuencia de servicio', 'Acción recomendada']].copy()
     df_table.columns = ['Unidad', 'Distribuidor', 'Estatus', 'Horas de retraso', 'Frecuencia de servicio', 'Acción recomendada']
     
-    servicios_en_fuga = len(df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente', 'Cerrada Fuera'])])
+    df_fuga = df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente', 'CerradaFuera', 'Cerrada Fuera'])]
+    servicios_en_fuga = len(df_fuga)
     total_servicios = len(df_mantenimientos)
     pct_fuga = (servicios_en_fuga / total_servicios * 100) if total_servicios > 0 else 0
-    retraso_promedio = df_mantenimientos['retraso_horas'].mean()
+    retraso_promedio = df_fuga['retraso_horas'].abs().mean()
     if pd.isna(retraso_promedio):
         retraso_promedio = 0
     else:
