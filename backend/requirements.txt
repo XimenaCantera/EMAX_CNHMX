@@ -9,3 +9,10 @@ pandas
 
 # Motor interno para que Pandas pueda interpretar la estructura de archivos .xlsx
 openpyxl
+
+# Framework para construir interfaces de usuario analíticas en Python
+dash
+
+# Biblioteca de graficación interactiva
+plotly
+

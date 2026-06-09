@@ -1,17 +1,13 @@
 Lista de todas las librerías de Python utilizadas y su justificación:
 
-1. Flask
-   - Uso: Framework web ligero para crear la API del servidor.
-   - Justificación: Permite levantar de manera rápida y con bajo consumo de recursos un servidor HTTP con endpoints REST para recibir los archivos del frontend de React.
+1. Flask: Permite levantar de manera rápida y con poco consumo de recursos el servidor HTTP para recibir los archivos del frontend de React.
 
-2. Flask-CORS
-   - Uso: Habilitar Cross-Origin Resource Sharing (CORS).
-   - Justificación: Permitie que el frontend de React envíe solicitudes y reciba respuestas de la API del backend sin ser bloqueado por el navegador.
+2. Flask-CORS: Permitie que el frontend de React envíe solicitudes y reciba respuestas del backend sin ser bloqueado por el navegador.
 
-3. Pandas
-   - Uso: Carga, procesamiento y previsualización de datos.
-   - Justificación: Es la biblioteca para manipulación de datos en Python. Se utiliza para leer el archivo Excel recién subido.
+3. Pandas: Se usa para manipular los datos y leer los archivos de Excel.
 
-4. Openpyxl
-   - Uso: Motor de lectura de archivos modernos de Excel (.xlsx).
-   - Justificación: Pandas requiere esta librería para poder abrir, analizar e interpretar la estructura y formato XML de los libros de cálculo .xlsx cargados al sistema.
+4. Openpyxl: Librería para poder abrir, analizar e interpretar la estructura y formato de los .xlsx cargados al sistema.
+
+5. Dash: Permite construir los gráficos en Python y conecta de forma fluida con los datos procesados por Pandas.
+
+6. Plotly: Motor de visualización que utiliza Dash. Permite generar los gráficos interactivos.
