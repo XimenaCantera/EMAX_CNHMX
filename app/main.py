@@ -35,9 +35,8 @@ def get_fuga_data():
     df_table = df_mantenimientos[['ALIAS', 'DISTRIBUIDOR', 'ESTATUS', 'retraso_horas', 'Frecuencia de servicio', 'Acción recomendada']].copy()
     df_table.columns = ['Unidad', 'Distribuidor', 'Estatus', 'Horas de retraso', 'Frecuencia de servicio', 'Acción recomendada']
     
-    # Repeat records to make the table longer to match screenshot height
+    # Cargar todos los registros reales para que React calcule las páginas exactas
     records = df_table.fillna('').to_dict(orient='records')
-    long_records = (records * 10)[:100]
 
     return jsonify({
         "kpis": {
@@ -46,7 +45,7 @@ def get_fuga_data():
             "meta_depuracion": "100% en 3 meses",
             "retraso_promedio": 487
         },
-        "table": long_records
+        "table": records
     })
 
 if not df_mantenimientos.empty:

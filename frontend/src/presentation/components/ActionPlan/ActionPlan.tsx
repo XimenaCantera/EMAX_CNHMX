@@ -97,8 +97,8 @@ export const ActionPlan: React.FC = () => {
         <div className={styles.kpiCard}>
           <h3>ROI Proyectado</h3>
           <p className={styles.kpiValue}>
-            {roiRow ? (roiRow.EscenarioMinimo as number).toFixed(2) : '0.00'}x
-            <span className={styles.kpiSub}> ~ {roiRow ? (roiRow.EscenarioMaximo as number).toFixed(2) : '0.00'}x</span>
+            {roiRow ? ((roiRow.EscenarioMinimo as number) * 100).toFixed(0) : '0'}%
+            <span className={styles.kpiSub}> ~ {roiRow ? ((roiRow.EscenarioMaximo as number) * 100).toFixed(0) : '0'}%</span>
           </p>
           <p className={styles.kpiDesc}>Retorno sobre la Inversión</p>
         </div>
