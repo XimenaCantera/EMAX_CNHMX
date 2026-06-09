@@ -61,6 +61,33 @@ def get_fuga_data():
         "table": records
     })
 
+@server.route('/api/dashboard-data', methods=['GET'])
+def get_dashboard_data():
+    try:
+        # Extraer el distribuidor con más fugas
+        df_fuga = df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente', 'CerradaFuera', 'Cerrada Fuera'])]
+        
+        # Encontrar el distribuidor más afectado
+        distribuidor_counts = df_fuga['DISTRIBUIDOR'].value_counts()
+        if not distribuidor_counts.empty:
+            peor_distribuidor = distribuidor_counts.index[0]
+            unidades_criticas = int(distribuidor_counts.iloc[0])
+        else:
+            peor_distribuidor = "Desconocido"
+            unidades_criticas = 0
+            
+        return jsonify({
+            "actions": {
+                "campaign": {
+                    "distributor": peor_distribuidor,
+                    "units": unidades_criticas
+                }
+            }
+        })
+    except Exception as e:
+        print("Error en dashboard-data:", e)
+        return jsonify({"error": str(e)}), 500
+
 if not df_mantenimientos.empty:
     color_discrete_map = {
         'Pendiente': '#fca5a5',

@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Activity, AlertTriangle, DollarSign, Calendar, AlertCircle, PenTool, TrendingUp, X, CheckCircle, Send, Search } from 'lucide-react';
 import './Dashboard.css';
 
 export const Dashboard: React.FC = () => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  const [dashboardData, setDashboardData] = useState<any>(null);
   const [requests, setRequests] = useState([
     { id: 'REQ-001', dist: 'SurTractores', kit: 'Kit Motor X', status: 'Pendiente' },
     { id: 'REQ-002', dist: 'AgroSur', kit: 'Kit Transmisión', status: 'Pendiente' },
     { id: 'REQ-003', dist: 'Equipos Centro', kit: 'Filtros Hidráulicos', status: 'Pendiente' }
   ]);
+
+  useEffect(() => {
+    fetch('http://127.0.0.1:8050/api/dashboard-data')
+      .then(res => res.json())
+      .then(data => setDashboardData(data))
+      .catch(err => console.error("Error loading dashboard data", err));
+  }, []);
 
   const handleApprove = (id: string) => {
     setRequests(requests.map(r => r.id === id ? { ...r, status: 'Aprobado' } : r));
@@ -26,6 +34,9 @@ export const Dashboard: React.FC = () => {
       setActiveModal(null);
     }, 2000);
   };
+
+  const topDist = dashboardData?.actions?.campaign?.distributor || 'AgroNorte S.A.';
+  const topUnits = dashboardData?.actions?.campaign?.units || 15;
 
   return (
     <div className="dashboard-page">
@@ -138,7 +149,7 @@ export const Dashboard: React.FC = () => {
               <AlertCircle size={20} className="text-critical" />
               <h4 className="font-bold">Contactar Distribuidores Clave</h4>
             </div>
-            <p className="text-sm text-muted mb-auto">15 unidades en AgroNorte S.A. han excedido su ventana de servicio preventivo.</p>
+            <p className="text-sm text-muted mb-auto">{topUnits.toLocaleString()} unidades en {topDist} han excedido su ventana de servicio preventivo.</p>
             <button className="btn btn-primary w-full mt-lg" onClick={() => setActiveModal('campaign')}>Iniciar Campaña</button>
           </div>
 
@@ -181,15 +192,15 @@ export const Dashboard: React.FC = () => {
                 <div className="email-form">
                   <div className="form-group">
                     <label>Para:</label>
-                    <input type="text" value="AgroNorte S.A. (Distribuidores)" readOnly />
+                    <input type="text" value={`${topDist} (Distribuidores)`} readOnly />
                   </div>
                   <div className="form-group">
                     <label>Asunto:</label>
-                    <input type="text" value="URGENTE: 15 Unidades críticas con servicios vencidos" readOnly />
+                    <input type="text" value={`URGENTE: ${topUnits.toLocaleString()} Unidades críticas con servicios vencidos`} readOnly />
                   </div>
                   <div className="form-group">
                     <label>Mensaje:</label>
-                    <textarea rows={5} defaultValue="Estimado equipo de AgroNorte,&#10;&#10;Hemos detectado que tienen 15 unidades en su región que han superado el límite de tolerancia para su mantenimiento preventivo. Les solicitamos contactar a los clientes inmediatamente para agendar citas de servicio.&#10;&#10;Adjunto la lista de unidades."></textarea>
+                    <textarea rows={5} defaultValue={`Estimado equipo de ${topDist},\n\nHemos detectado que tienen ${topUnits.toLocaleString()} unidades en su región que han superado el límite de tolerancia para su mantenimiento preventivo. Les solicitamos contactar a los clientes inmediatamente para agendar citas de servicio.\n\nAdjunto la lista de unidades.`}></textarea>
                   </div>
                   <button className="btn btn-primary w-full" onClick={handleSendEmail}>
                     <Send size={16} /> Enviar Comunicado
