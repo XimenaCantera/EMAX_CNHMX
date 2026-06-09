@@ -1,14 +1,16 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, DollarSign, Users, Tractor, Upload, UserCircle } from 'lucide-react';
+import { Home, PenTool, AlertTriangle, CircleDollarSign, Users, ClipboardList, Download, UserCircle } from 'lucide-react';
 import './Sidebar.css';
 
 const navItems = [
-  { path: '/', icon: <LayoutDashboard size={20} />, label: 'Inicio' },
-  { path: '/monetization', icon: <DollarSign size={20} />, label: 'Monetización' },
-  { path: '/distributors', icon: <Users size={20} />, label: 'Distribuidores' },
-  { path: '/unit', icon: <Tractor size={20} />, label: 'Unidad' },
-  { path: '/import', icon: <Upload size={20} />, label: 'Importar' },
+  { path: '/', icon: <Home size={24} />, label: 'Inicio' },
+  { path: '/fuga-servicios', icon: <PenTool size={24} />, label: 'Fuga de servicios' },
+  { path: '/riesgo-operativo', icon: <AlertTriangle size={24} />, label: 'Riesgo operativo' },
+  { path: '/monetization', icon: <CircleDollarSign size={24} />, label: 'Monetización' },
+  { path: '/distributors', icon: <Users size={24} />, label: 'Distribuidores' },
+  { path: '/action-plan', icon: <ClipboardList size={24} />, label: 'Plan a meses' },
+  { path: '/import', icon: <Download size={24} />, label: 'Importar datos' },
 ];
 
 export const Sidebar: React.FC = () => {

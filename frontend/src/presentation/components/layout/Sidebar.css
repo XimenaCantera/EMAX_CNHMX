@@ -32,31 +32,33 @@
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0 var(--space-md);
+  gap: 0;
+  padding: 0;
   flex-grow: 1;
-  margin-top: var(--space-md);
+  margin-top: 1rem;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-md);
-  color: #A5A6BA;
+  gap: 1rem;
+  padding: 1.25rem 2rem;
+  color: #ffffff;
   font-weight: 500;
+  font-size: 1.125rem;
   transition: all 0.2s;
+  border-right: 4px solid transparent;
 }
 
 .nav-item:hover {
-  color: white;
   background-color: rgba(255, 255, 255, 0.05);
+  color: white;
 }
 
 .nav-item.active {
-  background-color: var(--color-secondary);
+  background-color: #3b4e76; /* grayish blue highlight matching screenshot */
   color: white;
+  border-right: 4px solid #38bdf8; /* light blue right border */
 }
 
 .sidebar-footer {

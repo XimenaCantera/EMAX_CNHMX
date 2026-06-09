@@ -5,6 +5,7 @@ import { Dashboard } from './presentation/pages/Dashboard';
 import { Monetization } from './presentation/pages/Monetization';
 import { Distributors } from './presentation/pages/Distributors';
 import { UnitDetail } from './presentation/pages/UnitDetail';
+import { ActionPlan } from './presentation/components/ActionPlan/ActionPlan';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="monetization" element={<Monetization />} />
           <Route path="distributors" element={<Distributors />} />
           <Route path="unit" element={<UnitDetail />} />
+          <Route path="action-plan" element={<ActionPlan />} />
         </Route>
       </Routes>
     </Router>

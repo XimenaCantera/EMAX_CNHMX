@@ -1,0 +1,44 @@
+[
+  {
+    "Concepto": "Concepto",
+    "EscenarioMinimo": "Escenario Mínimo (Conservador)",
+    "EscenarioMaximo": "Escenario Máximo (Optimista)",
+    "Notas": "Notas / Estructura"
+  },
+  {
+    "Concepto": "Ingresos por recuperación de servicios fugados (I-01)",
+    "EscenarioMinimo": 12400000,
+    "EscenarioMaximo": 16500000,
+    "Notas": "Basado en campaña de lealtad y conversión"
+  },
+  {
+    "Concepto": "Ahorro en garantía + servicios preventivos (I-02)",
+    "EscenarioMinimo": 13000000,
+    "EscenarioMaximo": 14000000,
+    "Notas": "Mitigación de fallas catastróficas"
+  },
+  {
+    "Concepto": "Ingresos por campaña Pareto (I-03)",
+    "EscenarioMinimo": 18500000,
+    "EscenarioMaximo": 27800000,
+    "Notas": "Estrategia comercial en el Top 200 de oportunidad"
+  },
+  {
+    "Concepto": "Total de impacto en 9 meses",
+    "EscenarioMinimo": 43900000,
+    "EscenarioMaximo": 58300000,
+    "Notas": "Suma automática de beneficios"
+  },
+  {
+    "Concepto": "Inversión Inicial Estimada",
+    "EscenarioMinimo": 3500000,
+    "EscenarioMaximo": 2500000,
+    "Notas": "CAPEX/OPEX (Para el escenario conservador se usa el costo máximo)"
+  },
+  {
+    "Concepto": "Retorno de Inversión (ROI)",
+    "EscenarioMinimo": 11.54285714,
+    "EscenarioMaximo": 22.32,
+    "Notas": "Fórmula: (Impacto Total - Inversión) / Inversión"
+  }
+]
