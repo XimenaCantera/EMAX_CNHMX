@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Wrench, AlertTriangle, DollarSign, Users, ClipboardList, Upload } from 'lucide-react';
+import logoCnh from '../../../assets/logo_cnh.png';
 import './Sidebar.css';
 
 const navItems = [
@@ -18,8 +19,7 @@ export const Sidebar: React.FC = () => {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-logo">
-          <span className="cnh-text">CNH</span>
-          <span className="industrial-text">INDUSTRIAL</span>
+          <img src={logoCnh} alt="CNH Industrial Logo" className="logo-img" />
         </div>
       </div>
 
@@ -35,16 +35,6 @@ export const Sidebar: React.FC = () => {
           </NavLink>
         ))}
       </nav>
-
-      <div className="sidebar-footer">
-        <div className="user-profile">
-          <div className="user-avatar-circle">AD</div>
-          <div className="user-info">
-            <span className="user-name">Admin User</span>
-            <span className="user-status">Sesión Activa</span>
-          </div>
-        </div>
-      </div>
     </aside>
   );
 };
