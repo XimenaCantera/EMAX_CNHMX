@@ -15,7 +15,12 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     fetch('http://127.0.0.1:8050/api/dashboard-data')
       .then(res => res.json())
-      .then(data => setDashboardData(data))
+      .then(data => {
+        setDashboardData(data);
+        if (data?.actions?.kits?.requests) {
+          setRequests(data.actions.kits.requests);
+        }
+      })
       .catch(err => console.error("Error loading dashboard data", err));
   }, []);
 
@@ -158,7 +163,7 @@ export const Dashboard: React.FC = () => {
               <PenTool size={20} className="text-primary" />
               <h4 className="font-bold">Aprobar Kits de Reparación</h4>
             </div>
-            <p className="text-sm text-muted mb-auto">32 solicitudes de kits de reparación de motor están pendientes de aprobación en la región sur.</p>
+            <p className="text-sm text-muted mb-auto">{dashboardData?.actions?.kits?.total_pending?.toLocaleString() || 32} solicitudes de kits de reparación de mantenimiento están pendientes de aprobación.</p>
             <button className="btn btn-neutral w-full mt-lg" onClick={() => setActiveModal('kits')}>Revisar Solicitudes</button>
           </div>
 

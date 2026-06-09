@@ -75,12 +75,28 @@ def get_dashboard_data():
         else:
             peor_distribuidor = "Desconocido"
             unidades_criticas = 0
+
+        # Generar solicitudes de kits basadas en unidades reales "Pendientes"
+        df_pendientes = df_mantenimientos[df_mantenimientos['ESTATUS'] == 'Pendiente'].head(3)
+        requests_list = []
+        for index, row in df_pendientes.iterrows():
+            kit_name = f"Kit de Mantenimiento {row['SERVICIO']}h"
+            requests_list.append({
+                "id": f"REQ-{index}",
+                "dist": row['DISTRIBUIDOR'],
+                "kit": kit_name,
+                "status": "Pendiente"
+            })
             
         return jsonify({
             "actions": {
                 "campaign": {
                     "distributor": peor_distribuidor,
                     "units": unidades_criticas
+                },
+                "kits": {
+                    "requests": requests_list,
+                    "total_pending": len(df_mantenimientos[df_mantenimientos['ESTATUS'] == 'Pendiente'])
                 }
             }
         })
