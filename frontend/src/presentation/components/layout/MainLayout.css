@@ -1,7 +1,12 @@
+:root {
+  --color-fondo: var(--color-background);
+  --espacio-xl: var(--space-xl);
+}
+
 .layout-container {
   display: flex;
   min-height: 100vh;
-  background-color: var(--color-background);
+  background-color: var(--color-fondo);
 }
 
 .layout-content {
@@ -12,7 +17,7 @@
 }
 
 .main-content {
-  padding: var(--space-xl);
+  padding: var(--espacio-xl);
   flex-grow: 1;
   overflow-y: auto;
 }

@@ -1,3 +1,11 @@
+:root {
+  /* Variables de espaciado */
+  --espacio-md: var(--space-md);
+  --espacio-lg: var(--space-lg);
+  --espacio-xl: var(--space-xl);
+  --espacio-2xl: var(--space-2xl);
+}
+
 .sidebar {
   width: 220px;
   background-color: #10123C;
@@ -13,7 +21,7 @@
 }
 
 .sidebar-header {
-  padding: var(--space-2xl) var(--space-xl) var(--space-xl) var(--space-xl);
+  padding: var(--espacio-2xl) var(--espacio-xl) var(--espacio-xl) var(--espacio-xl);
 }
 
 .sidebar-logo {
@@ -33,14 +41,14 @@
   flex-direction: column;
   padding: 0;
   flex-grow: 1;
-  margin-top: var(--space-lg);
+  margin-top: var(--espacio-lg);
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  padding: 0.875rem var(--space-xl);
+  gap: var(--espacio-md);
+  padding: 0.875rem var(--espacio-xl);
   color: #b3b4c9;
   font-weight: 500;
   font-size: 0.938rem;
@@ -51,7 +59,7 @@
 .nav-item:hover {
   color: white;
   background-color: rgba(255, 255, 255, 0.03);
-  padding-left: calc(var(--space-xl) + 2px);
+  padding-left: calc(var(--espacio-xl) + 2px);
 }
 
 .nav-item.active {
@@ -62,7 +70,7 @@
 }
 
 .sidebar-footer {
-  padding: var(--space-lg) var(--space-xl);
+  padding: var(--espacio-lg) var(--espacio-xl);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   background-color: rgba(0, 0, 0, 0.1);
 }

@@ -4,112 +4,143 @@ from flask_cors import CORS
 import pandas as pd
 import numpy as np
 
-# Inicializar el servidor Flask
-app = Flask(__name__)
-CORS(app)
+# Inicializar el servidor Flask principal
+servidor_flask = Flask(__name__)
+CORS(servidor_flask)
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CLEAN_FILES_DIR = os.path.join(BASE_DIR, 'data', 'ArchivosLimpios')
+DIRECTORIO_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DIRECTORIO_ARCHIVOS_LIMPIOS = os.path.join(DIRECTORIO_BASE, 'data', 'ArchivosLimpios')
 
-# =============================================================
-# Integrar Dash para importar datos
-# =============================================================
-@app.route('/api/status', methods=['GET'])
-def get_status():
+# ==============================
+# Endpoints de la API REST
+# ==============================
+
+@servidor_flask.route('/api/status', methods=['GET'])
+def obtener_estado_servidor():
     return jsonify({
         "status": "ok",
         "message": "Servidor backend de CNH Industrial activo con Dash."
     }), 200
 
-@app.route('/api/upload', methods=['POST'])
-def upload_files():
-    uploaded_files = request.files.getlist('files') or request.files.getlist('file')
-    if not uploaded_files or len(uploaded_files) == 0 or (len(uploaded_files) == 1 and uploaded_files[0].filename == ''):
+# Stub de compatibilidad para dashboards
+def obtener_datos_dashboard(directorio_archivos):
+    return None
+
+@servidor_flask.route('/api/dashboard', methods=['GET'])
+def obtener_dashboard():
+    try:
+        datos = obtener_datos_dashboard(DIRECTORIO_ARCHIVOS_LIMPIOS)
+        if datos is None:
+            return jsonify({
+                "success": False,
+                "error": "No se encontraron las bases de datos de CNH necesarias o ocurrió un error al cargarlas. Por favor, sube los archivos limpios en la sección 'Importar datos'."
+            }), 404
+        return jsonify({
+            "success": True,
+            "data": datos
+        }), 200
+    except Exception as error_servidor:
+        print(f"Error en /api/dashboard: {error_servidor}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "error": f"Error interno del servidor al procesar el dashboard: {str(error_servidor)}"
+        }), 500
+
+@servidor_flask.route('/api/upload', methods=['POST'])
+def subir_archivos_excel():
+    archivos_cargados = request.files.getlist('files') or request.files.getlist('file')
+    if not archivos_cargados or len(archivos_cargados) == 0 or (len(archivos_cargados) == 1 and archivos_cargados[0].filename == ''):
         return jsonify({"error": "No se recibió ningún archivo válido en la solicitud."}), 400
         
-    results = []
-    def sanitize_val(v):
-        if pd.isnull(v) or v is None:
+    resultados_procesamiento = []
+    
+    def sanitizar_valor_celda(valor):
+        if pd.isnull(valor) or valor is None:
             return None
-        if isinstance(v, (pd.Timestamp, pd.Timedelta)):
-            return str(v)
-        if isinstance(v, float):
-            if np.isnan(v) or np.isinf(v):
+        if isinstance(valor, (pd.Timestamp, pd.Timedelta)):
+            return str(valor)
+        if isinstance(valor, float):
+            if np.isnan(valor) or np.isinf(valor):
                 return None
         try:
-            if hasattr(v, 'item'):
-                return v.item()
+            # Converte los valores de numpy a nativos de Python
+            return valor.item()
         except Exception:
             pass
-        return v
+        return valor
+
         
-    for file in uploaded_files:
-        if file.filename == '':
+    for archivo in archivos_cargados:
+        if archivo.filename == '':
             continue
-        if not file.filename.lower().endswith('.xlsx'):
-            results.append({
-                "filename": file.filename,
+        if not archivo.filename.lower().endswith('.xlsx'):
+            resultados_procesamiento.append({
+                "filename": archivo.filename,
                 "success": False,
                 "error": "Solo se permiten archivos de tipo Excel (.xlsx)."
             })
             continue
             
         try:
-            os.makedirs(CLEAN_FILES_DIR, exist_ok=True)
-            target_path = os.path.join(CLEAN_FILES_DIR, file.filename)
-            file.save(target_path)
+            os.makedirs(DIRECTORIO_ARCHIVOS_LIMPIOS, exist_ok=True)
+            ruta_destino = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, archivo.filename)
+            archivo.save(ruta_destino)
             
-            df = pd.read_excel(target_path)
-            rows_count = len(df)
-            columns_list = list(df.columns)
-            file_size = os.path.getsize(target_path)
-            
-            preview_raw = df.head(5).to_dict(orient='records')
-            preview_data = [
-                {k: sanitize_val(v) for k, v in row.items()}
-                for row in preview_raw
+    
+            df_temporal = pd.read_excel(ruta_destino)
+            cantidad_filas = len(df_temporal)
+            lista_columnas = list(df_temporal.columns)
+            tamano_archivo = os.path.getsize(ruta_destino)
+ 
+            vista_previa_original = df_temporal.head(5).to_dict(orient='records')
+            datos_vista_previa = [
+                {columna: sanitizar_valor_celda(valor) for columna, valor in fila.items()}
+                for fila in vista_previa_original
             ]
             
-            results.append({
-                "filename": file.filename,
+            resultados_procesamiento.append({
+                "filename": archivo.filename,
                 "success": True,
-                "message": f"¡Archivo '{file.filename}' importado y guardado correctamente!",
+                "message": f"¡Archivo '{archivo.filename}' importado y guardado correctamente!",
                 "metadata": {
-                    "filename": file.filename,
-                    "size_bytes": file_size,
-                    "rows": rows_count,
-                    "columns": columns_list,
-                    "preview": preview_data
+                    "filename": archivo.filename,
+                    "size_bytes": tamano_archivo,
+                    "rows": cantidad_filas,
+                    "columns": lista_columnas,
+                    "preview": datos_vista_previa
                 }
             })
-        except Exception as e:
-            results.append({
-                "filename": file.filename,
+        except Exception as error_carga:
+            resultados_procesamiento.append({
+                "filename": archivo.filename,
                 "success": False,
-                "error": f"Error al procesar el archivo: {str(e)}"
+                "error": f"Error al procesar el archivo: {str(error_carga)}"
             })
             
-    success_count = sum(1 for r in results if r["success"])
+    cantidad_exitosos = sum(1 for resultado in resultados_procesamiento if resultado["success"])
     return jsonify({
-        "success": success_count > 0,
-        "results": results,
-        "success_count": success_count,
-        "total_count": len(results)
+        "success": cantidad_exitosos > 0,
+        "results": resultados_procesamiento,
+        "success_count": cantidad_exitosos,
+        "total_count": len(resultados_procesamiento)
     }), 200
 
 # =============================================================
-# Integrar Dash de Riesgo Operativo
+# 6.2.1 Integrar Dash de Riesgo Operativo
 # =============================================================
 from riesgo_operativo import init_riesgo_operativo
-init_riesgo_operativo(app)
+init_riesgo_operativo(servidor_flask)
 
 # =============================================================
-# Integrar Dash de Monetización
+# 6.2.1 Integrar Dash de Monetización
 # =============================================================
-from monetizacion import init_monetizacion
-init_monetizacion(app)
+from monetizacion import inicializar_monetizacion
+inicializar_monetizacion(servidor_flask)
 
+# Aliases de compatibilidad global por si se requieren externamente
+app = servidor_flask
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
-
+    servidor_flask.run(host='0.0.0.0', port=5000, debug=True)

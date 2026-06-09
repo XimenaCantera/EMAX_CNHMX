@@ -1,38 +1,55 @@
+:root {
+  /* Variables globales de diseño */
+  --color-fondo: var(--color-background);
+  --color-superficie: var(--color-surface);
+  --color-primario: var(--color-primary);
+  --color-borde: var(--color-border);
+  --color-texto-atenuado: var(--color-text-muted);
+  --fuente-titulo: var(--font-heading);
+  --fuente-cuerpo: var(--font-body);
+  --espacio-sm: var(--space-sm);
+  --espacio-md: var(--space-md);
+  --espacio-lg: var(--space-lg);
+  --espacio-xl: var(--space-xl);
+  --radio-xl: var(--radius-xl);
+  --sombra-sm: var(--shadow-sm);
+}
+
 .monetization-page {
   display: flex;
   flex-direction: column;
-  padding: var(--space-md) var(--space-xl);
-  gap: var(--space-lg);
-  background-color: var(--color-background);
+  padding: var(--espacio-md) var(--espacio-xl);
+  gap: var(--espacio-lg);
+  background-color: var(--color-fondo);
   min-height: calc(100vh - 80px);
 }
 
 .monetization-header {
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--espacio-sm);
 }
 
 .monetization-header h1 {
   font-size: 2.25rem;
   font-weight: 800;
-  color: var(--color-primary);
-  font-family: var(--font-heading);
+  color: var(--color-primario);
+  font-family: var(--fuente-titulo);
   letter-spacing: -0.025em;
   margin: 0;
 }
 
 .monetization-row {
   display: flex;
-  gap: var(--space-xl);
-  margin-bottom: var(--space-lg);
+  gap: var(--espacio-xl);
+  margin-bottom: var(--espacio-lg);
   flex-wrap: wrap;
 }
 
 .monetization-card {
-  background-color: var(--color-surface);
-  border-radius: var(--radius-xl);
-  padding: var(--space-xl);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-border);
+  background-color: var(--color-superficie);
+  border-radius: var(--radio-xl);
+  padding: var(--espacio-xl);
+  box-shadow: var(--sombra-sm);
+  border: 1px solid var(--color-borde);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -54,7 +71,7 @@
 .monetization-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: var(--font-body);
+  font-family: var(--fuente-cuerpo);
 }
 
 .monetization-table th {
@@ -62,8 +79,8 @@
   padding: 14px 16px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--color-text-muted);
-  border-bottom: 1px solid var(--color-border);
+  color: var(--color-texto-atenuado);
+  border-bottom: 1px solid var(--color-borde);
   background-color: #fafbfc;
 }
 
@@ -139,9 +156,9 @@
 .chart-title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: var(--color-primary);
-  margin-bottom: var(--space-lg);
-  font-family: var(--font-heading);
+  color: var(--color-primario);
+  margin-bottom: var(--espacio-lg);
+  font-family: var(--fuente-titulo);
 }
 
 .chart-svg-container {
@@ -159,13 +176,13 @@
 .chart-axis-text {
   font-size: 10px;
   fill: #64748b;
-  font-family: var(--font-body);
+  font-family: var(--fuente-cuerpo);
 }
 
 .chart-y-label {
   font-size: 9px;
   fill: #64748b;
-  font-family: var(--font-body);
+  font-family: var(--fuente-cuerpo);
   transition: fill 0.2s, font-weight 0.2s;
 }
 
@@ -173,7 +190,7 @@
   font-size: 10px;
   font-weight: 600;
   fill: #475569;
-  font-family: var(--font-body);
+  font-family: var(--fuente-cuerpo);
   letter-spacing: 0.025em;
 }
 
@@ -181,25 +198,25 @@
   font-size: 9px;
   font-weight: 700;
   fill: #334155;
-  font-family: var(--font-heading);
+  font-family: var(--fuente-titulo);
 }
 
 .chart-legend-text {
   font-size: 9px;
   fill: #64748b;
-  font-family: var(--font-body);
+  font-family: var(--fuente-cuerpo);
 }
 
 .chart-legend-text-side {
   font-size: 10px;
   fill: #475569;
-  font-family: var(--font-body);
+  font-family: var(--fuente-cuerpo);
 }
 
 .chart-legend-label {
   font-size: 9.5px;
   fill: #334155;
-  font-family: var(--font-body);
+  font-family: var(--fuente-cuerpo);
 }
 
 /* Estilo de Tooltip */
@@ -210,13 +227,13 @@
 .tooltip-title {
   font-size: 11px;
   font-weight: 700;
-  font-family: var(--font-heading);
+  font-family: var(--fuente-titulo);
 }
 
 .tooltip-value {
   font-size: 11px;
   font-weight: 600;
-  font-family: var(--font-body);
+  font-family: var(--fuente-cuerpo);
 }
 
 .bar-rect {

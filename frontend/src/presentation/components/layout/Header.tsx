@@ -1,18 +1,18 @@
 import React from 'react';
-import { Search, Bell, Settings, UserCircle } from 'lucide-react';
+import { Search, Bell } from 'lucide-react';
 import './Header.css';
 
-interface HeaderProps {
-  title?: string;
-  subtitle?: string;
+interface PropiedadesCabecera {
+  titulo?: string;
+  subtitulo?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title = 'Industrial Dashboard', subtitle }) => {
+export const Cabecera: React.FC<PropiedadesCabecera> = ({ titulo = 'Tablero Industrial', subtitulo }) => {
   return (
     <header className="header">
       <div className="header-left">
-        <h2>{title}</h2>
-        {subtitle && <p className="text-muted text-sm">{subtitle}</p>}
+        <h2>{titulo}</h2>
+        {subtitulo && <p className="text-muted text-sm">{subtitulo}</p>}
       </div>
 
       <div className="header-right">
@@ -30,3 +30,6 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Industrial Dashboard', 
     </header>
   );
 };
+
+export const Header = Cabecera;
+export type HeaderProps = PropiedadesCabecera;

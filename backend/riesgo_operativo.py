@@ -17,6 +17,9 @@ def init_riesgo_operativo(server):
         url_base_pathname='/dash/riesgo/',
         external_stylesheets=['https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap']
     )
+    
+    from plantillas_dash import PLANTILLA_HTML_CARGANDO
+    app_dash.index_string = PLANTILLA_HTML_CARGANDO
 
     def serve_layout():
         maint_path = os.path.join(CLEAN_FILES_DIR, 'new_mantenimientos.xlsx')

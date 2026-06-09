@@ -1,90 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { ContenedorTablero } from '../components/layout/ContenedorTablero';
 
-export const Monetization: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-
+export const VistaMonetizacion: React.FC = () => {
   return (
-    <div style={{ 
-      padding: '24px 0px', 
-      boxSizing: 'border-box',
-      backgroundColor: '#f8fafc' 
-    }}>
-      <div style={{ 
-        marginBottom: '16px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <h1 style={{ 
-          fontSize: '2.25rem', 
-          fontWeight: 800, 
-          color: '#10123C', 
-          fontFamily: 'Hanken Grotesk, sans-serif',
-          margin: 0,
-          letterSpacing: '-0.025em'
-        }}>
-          Monetización
-        </h1>
-      </div>
-
-      <div style={{ 
-        position: 'relative', 
-        width: '100%',
-        minHeight: '1100px'
-      }}>
-        {loading && (
-          <div style={{ 
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex', 
-            flexDirection: 'column',
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            backgroundColor: '#f8fafc',
-            zIndex: 10
-          }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              border: '4px solid #f3f3f3',
-              borderTop: '4px solid #10123C',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              marginBottom: '12px'
-            }} />
-            <span style={{ 
-              fontFamily: 'Inter, sans-serif', 
-              fontSize: '14px', 
-              color: '#6b7280',
-              fontWeight: 500
-            }}>
-              Cargando panel de monetización...
-            </span>
-            <style>{`
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}</style>
-          </div>
-        )}
-        <iframe
-          src="http://127.0.0.1:5000/dash/monetizacion/"
-          title="Monetización Dash"
-          width="100%"
-          height="1100px"
-          scrolling="no"
-          style={{ 
-            border: 'none', 
-            display: loading ? 'none' : 'block',
-            overflow: 'hidden'
-          }}
-          onLoad={() => setLoading(false)}
-        />
-      </div>
-    </div>
+    <ContenedorTablero
+      titulo="Monetización"
+      iframeSrc="http://127.0.0.1:5000/dash/monetizacion/"
+      iframeTitle="Monetización Dash"
+      textoCargando="Cargando panel de monetización..."
+      colorFondoCargador="#f8fafc"
+      altura="950px"
+      esContenedorCompleto={false}
+    />
   );
 };
+
+export const Monetization = VistaMonetizacion;
