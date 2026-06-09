@@ -103,5 +103,13 @@ def upload_files():
 from riesgo_operativo import init_riesgo_operativo
 init_riesgo_operativo(app)
 
+# =============================================================
+# Integrar Dash de Monetización
+# =============================================================
+from monetizacion import init_monetizacion
+init_monetizacion(app)
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+

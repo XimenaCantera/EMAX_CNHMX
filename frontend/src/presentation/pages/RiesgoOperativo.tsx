@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 
-export const Monetization: React.FC = () => {
+export const RiesgoOperativo: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   return (
     <div style={{ 
-      padding: '24px 0px', 
+      padding: '24px', 
+      height: 'calc(100vh - 80px)', 
+      display: 'flex', 
+      flexDirection: 'column', 
       boxSizing: 'border-box',
       backgroundColor: '#f8fafc' 
     }}>
@@ -23,14 +26,18 @@ export const Monetization: React.FC = () => {
           margin: 0,
           letterSpacing: '-0.025em'
         }}>
-          Monetización
+          Riesgo Operativo
         </h1>
       </div>
 
       <div style={{ 
+        flex: 1, 
         position: 'relative', 
-        width: '100%',
-        minHeight: '1100px'
+        backgroundColor: '#ffffff',
+        borderRadius: '12px',
+        border: '1px solid #e5e7eb',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+        overflow: 'hidden'
       }}>
         {loading && (
           <div style={{ 
@@ -43,7 +50,7 @@ export const Monetization: React.FC = () => {
             flexDirection: 'column',
             justifyContent: 'center', 
             alignItems: 'center', 
-            backgroundColor: '#f8fafc',
+            backgroundColor: '#ffffff',
             zIndex: 10
           }}>
             <div style={{
@@ -61,7 +68,7 @@ export const Monetization: React.FC = () => {
               color: '#6b7280',
               fontWeight: 500
             }}>
-              Cargando panel de monetización...
+              Cargando panel de riesgo operativo...
             </span>
             <style>{`
               @keyframes spin {
@@ -72,15 +79,13 @@ export const Monetization: React.FC = () => {
           </div>
         )}
         <iframe
-          src="http://127.0.0.1:5000/dash/monetizacion/"
-          title="Monetización Dash"
+          src="http://127.0.0.1:5000/dash/riesgo/"
+          title="Riesgo Operativo Dash"
           width="100%"
-          height="1100px"
-          scrolling="no"
+          height="100%"
           style={{ 
             border: 'none', 
-            display: loading ? 'none' : 'block',
-            overflow: 'hidden'
+            display: loading ? 'none' : 'block'
           }}
           onLoad={() => setLoading(false)}
         />

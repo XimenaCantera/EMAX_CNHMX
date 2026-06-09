@@ -20,16 +20,10 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Industrial Dashboard', 
           <Search size={18} className="text-muted" />
           <input type="text" placeholder="Buscar unidades..." />
         </div>
-        
+
         <div className="header-actions">
-          <button className="icon-btn">
+          <button className="icon-btn" title="Notificaciones">
             <Bell size={20} />
-          </button>
-          <button className="icon-btn">
-            <Settings size={20} />
-          </button>
-          <button className="icon-btn">
-            <UserCircle size={20} />
           </button>
         </div>
       </div>
