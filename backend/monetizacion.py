@@ -128,7 +128,7 @@ def inicializar_monetizacion(servidor_flask):
                 y='ALIAS',
                 orientation='h',
                 color='puntaje_oportunidad',
-                color_continuous_scale='Greens',
+                color_continuous_scale='Blues',
                 labels={'puntaje_oportunidad': 'Puntaje de Oportunidad', 'ALIAS': 'Unidad'}
             )
             figura_barras_oportunidad.update_layout(
@@ -166,7 +166,7 @@ def inicializar_monetizacion(servidor_flask):
                 x=df_curva_pareto['cumulative_units_pct'],
                 y=df_curva_pareto['cumulative_score_pct'],
                 name='Porcentaje Acumulado de Oportunidad',
-                line=dict(color='#ef4444', width=3),
+                line=dict(color='#991b1b', width=3),
                 mode='lines'
             ))
             # Línea de score individual
@@ -174,7 +174,7 @@ def inicializar_monetizacion(servidor_flask):
                 x=df_curva_pareto['cumulative_units_pct'],
                 y=df_curva_pareto['puntaje_oportunidad'],
                 name='Puntaje de Oportunidad (Individual)',
-                line=dict(color='#3b82f6', width=1.5),
+                line=dict(color='#f87171', width=1.5),
                 mode='lines',
                 yaxis='y2'
             ))
@@ -232,8 +232,8 @@ def inicializar_monetizacion(servidor_flask):
                 color='Componente',
                 barmode='group',
                 color_discrete_map={
-                    'Riesgo de Retraso (RIT)': '#ea580c',
-                    'Valor de Aftermarket (VAE)': '#0284c7'
+                    'Riesgo de Retraso (RIT)': '#dc2626',
+                    'Valor de Aftermarket (VAE)': '#3b82f6'
                 },
                 labels={'ALIAS': 'Unidad', 'Componente': 'Componente de Puntaje'}
             )
@@ -254,15 +254,15 @@ def inicializar_monetizacion(servidor_flask):
             # -------------------------------
             def obtener_estilo_etiqueta_puntaje(puntaje):
                 if puntaje == 1.0:
-                    return {'background-color': '#2b6b0c', 'color': '#ffffff', 'border': '1.5px solid #2b6b0c', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
+                    return {'background-color': '#dc2626', 'color': '#ffffff', 'border': '1.5px solid #dc2626', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
                 elif puntaje >= 0.8:
-                    return {'background-color': '#ffffff', 'border': '1.5px solid #52a825', 'color': '#2b6b0c', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
+                    return {'background-color': '#ffffff', 'border': '1.5px solid #ef4444', 'color': '#dc2626', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
                 elif puntaje >= 0.7:
-                    return {'background-color': '#ffffff', 'border': '1.5px solid #7dc75e', 'color': '#3f8719', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
+                    return {'background-color': '#ffffff', 'border': '1.5px solid #f87171', 'color': '#b91c1c', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
                 elif puntaje >= 0.6:
-                    return {'background-color': '#ffffff', 'border': '1.5px solid #a3db88', 'color': '#52a825', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
+                    return {'background-color': '#ffffff', 'border': '1.5px solid #fca5a5', 'color': '#dc2626', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
                 else:
-                    return {'background-color': '#ffffff', 'border': '1.5px solid #c2e7b0', 'color': '#52a825', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
+                    return {'background-color': '#ffffff', 'border': '1.5px solid #fee2e2', 'color': '#ef4444', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
 
             cabecera_tabla = [
                 html.Tr([

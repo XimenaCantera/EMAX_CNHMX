@@ -94,6 +94,7 @@ def init_riesgo_operativo(server):
                 y='Unidades en Alerta Roja',
                 size='Total Unidades',
                 color='DISTRIBUIDOR',
+                color_discrete_sequence=['#991b1b', '#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fee2e2'],
                 hover_name='DISTRIBUIDOR',
                 title='Matriz de riesgo por distribuidor',
                 labels={
@@ -136,7 +137,7 @@ def init_riesgo_operativo(server):
                 title='Top 10 unidades críticas por antigüedad de alerta',
                 labels={'antiguedad_alerta': 'Antigüedad de la Alerta (Días)', 'ALIAS': 'Unidad ALIAS'},
                 color='antiguedad_alerta',
-                color_continuous_scale='Oranges_r'
+                color_continuous_scale='Reds_r'
             )
             
             fig_oldest_alerts.update_xaxes(categoryorder='total descending')
