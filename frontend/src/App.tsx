@@ -6,6 +6,7 @@ import { Monetization } from './presentation/pages/Monetization';
 import { Distributors } from './presentation/pages/Distributors';
 import { UnitDetail } from './presentation/pages/UnitDetail';
 import { ActionPlan } from './presentation/components/ActionPlan/ActionPlan';
+import { FugaServicios } from './presentation/pages/FugaServicios';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="distributors" element={<Distributors />} />
           <Route path="unit" element={<UnitDetail />} />
           <Route path="action-plan" element={<ActionPlan />} />
+          <Route path="fuga-servicios" element={<FugaServicios />} />
         </Route>
       </Routes>
     </Router>
