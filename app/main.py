@@ -35,15 +35,23 @@ def get_fuga_data():
     df_table = df_mantenimientos[['ALIAS', 'DISTRIBUIDOR', 'ESTATUS', 'retraso_horas', 'Frecuencia de servicio', 'Acción recomendada']].copy()
     df_table.columns = ['Unidad', 'Distribuidor', 'Estatus', 'Horas de retraso', 'Frecuencia de servicio', 'Acción recomendada']
     
-    # Cargar todos los registros reales para que React calcule las páginas exactas
+    servicios_en_fuga = len(df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente', 'Cerrada Fuera'])])
+    total_servicios = len(df_mantenimientos)
+    pct_fuga = (servicios_en_fuga / total_servicios * 100) if total_servicios > 0 else 0
+    retraso_promedio = df_mantenimientos['retraso_horas'].mean()
+    if pd.isna(retraso_promedio):
+        retraso_promedio = 0
+    else:
+        retraso_promedio = int(retraso_promedio)
+
     records = df_table.fillna('').to_dict(orient='records')
 
     return jsonify({
         "kpis": {
-            "servicios_fuga": "18,279",
-            "pct_pendiente_cerrada_fuera": 76.47,
+            "servicios_fuga": f"{servicios_en_fuga:,}",
+            "pct_pendiente_cerrada_fuera": round(pct_fuga, 2),
             "meta_depuracion": "100% en 3 meses",
-            "retraso_promedio": 487
+            "retraso_promedio": retraso_promedio
         },
         "table": records
     })
