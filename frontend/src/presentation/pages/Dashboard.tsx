@@ -1,8 +1,32 @@
-import React from 'react';
-import { Activity, AlertTriangle, DollarSign, Calendar, AlertCircle, PenTool, TrendingUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { Activity, AlertTriangle, DollarSign, Calendar, AlertCircle, PenTool, TrendingUp, X, CheckCircle, Send, Search } from 'lucide-react';
 import './Dashboard.css';
 
 export const Dashboard: React.FC = () => {
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
+  const [requests, setRequests] = useState([
+    { id: 'REQ-001', dist: 'SurTractores', kit: 'Kit Motor X', status: 'Pendiente' },
+    { id: 'REQ-002', dist: 'AgroSur', kit: 'Kit Transmisión', status: 'Pendiente' },
+    { id: 'REQ-003', dist: 'Equipos Centro', kit: 'Filtros Hidráulicos', status: 'Pendiente' }
+  ]);
+
+  const handleApprove = (id: string) => {
+    setRequests(requests.map(r => r.id === id ? { ...r, status: 'Aprobado' } : r));
+  };
+
+  const handleReject = (id: string) => {
+    setRequests(requests.map(r => r.id === id ? { ...r, status: 'Rechazado' } : r));
+  };
+
+  const handleSendEmail = () => {
+    setEmailSent(true);
+    setTimeout(() => {
+      setEmailSent(false);
+      setActiveModal(null);
+    }, 2000);
+  };
+
   return (
     <div className="dashboard-page">
       <div className="page-header">
@@ -115,7 +139,7 @@ export const Dashboard: React.FC = () => {
               <h4 className="font-bold">Contactar Distribuidores Clave</h4>
             </div>
             <p className="text-sm text-muted mb-auto">15 unidades en AgroNorte S.A. han excedido su ventana de servicio preventivo.</p>
-            <button className="btn btn-primary w-full mt-lg">Iniciar Campaña</button>
+            <button className="btn btn-primary w-full mt-lg" onClick={() => setActiveModal('campaign')}>Iniciar Campaña</button>
           </div>
 
           <div className="card action-card">
@@ -124,7 +148,7 @@ export const Dashboard: React.FC = () => {
               <h4 className="font-bold">Aprobar Kits de Reparación</h4>
             </div>
             <p className="text-sm text-muted mb-auto">32 solicitudes de kits de reparación de motor están pendientes de aprobación en la región sur.</p>
-            <button className="btn btn-neutral w-full mt-lg">Revisar Solicitudes</button>
+            <button className="btn btn-neutral w-full mt-lg" onClick={() => setActiveModal('kits')}>Revisar Solicitudes</button>
           </div>
 
           <div className="card action-card">
@@ -133,10 +157,138 @@ export const Dashboard: React.FC = () => {
               <h4 className="font-bold">Revisar Precios Aftermarket</h4>
             </div>
             <p className="text-sm text-muted mb-auto">Nueva data de mercado sugiere oportunidad de ajuste de precios en filtros hidráulicos.</p>
-            <button className="btn btn-neutral w-full mt-lg">Analizar Data</button>
+            <button className="btn btn-neutral w-full mt-lg" onClick={() => setActiveModal('prices')}>Analizar Data</button>
           </div>
         </div>
       </div>
+
+      {/* Modal - Campaña */}
+      {activeModal === 'campaign' && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Iniciar Campaña de Contacto</h3>
+              <button onClick={() => setActiveModal(null)} className="btn-close"><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              {emailSent ? (
+                <div className="success-state">
+                  <CheckCircle size={48} className="text-success" />
+                  <h4>¡Campaña enviada con éxito!</h4>
+                  <p>Los distribuidores recibirán la notificación en breve.</p>
+                </div>
+              ) : (
+                <div className="email-form">
+                  <div className="form-group">
+                    <label>Para:</label>
+                    <input type="text" value="AgroNorte S.A. (Distribuidores)" readOnly />
+                  </div>
+                  <div className="form-group">
+                    <label>Asunto:</label>
+                    <input type="text" value="URGENTE: 15 Unidades críticas con servicios vencidos" readOnly />
+                  </div>
+                  <div className="form-group">
+                    <label>Mensaje:</label>
+                    <textarea rows={5} defaultValue="Estimado equipo de AgroNorte,&#10;&#10;Hemos detectado que tienen 15 unidades en su región que han superado el límite de tolerancia para su mantenimiento preventivo. Les solicitamos contactar a los clientes inmediatamente para agendar citas de servicio.&#10;&#10;Adjunto la lista de unidades."></textarea>
+                  </div>
+                  <button className="btn btn-primary w-full" onClick={handleSendEmail}>
+                    <Send size={16} /> Enviar Comunicado
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal - Kits */}
+      {activeModal === 'kits' && (
+        <div className="modal-overlay">
+          <div className="modal-content modal-lg">
+            <div className="modal-header">
+              <h3>Revisar Solicitudes de Kits</h3>
+              <button onClick={() => setActiveModal(null)} className="btn-close"><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>ID REQ</th>
+                    <th>DISTRIBUIDOR</th>
+                    <th>TIPO DE KIT</th>
+                    <th>ESTATUS</th>
+                    <th>ACCIONES</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.map(req => (
+                    <tr key={req.id}>
+                      <td className="font-bold">{req.id}</td>
+                      <td>{req.dist}</td>
+                      <td>{req.kit}</td>
+                      <td>
+                        <span className={`badge ${req.status === 'Pendiente' ? 'badge-warning' : req.status === 'Aprobado' ? 'badge-neutral' : 'badge-critical'}`}>
+                          {req.status}
+                        </span>
+                      </td>
+                      <td>
+                        {req.status === 'Pendiente' && (
+                          <div className="action-buttons">
+                            <button className="btn-small btn-approve" onClick={() => handleApprove(req.id)}>Aprobar</button>
+                            <button className="btn-small btn-reject" onClick={() => handleReject(req.id)}>Rechazar</button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal - Precios */}
+      {activeModal === 'prices' && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Análisis de Precios: Filtros Hidráulicos</h3>
+              <button onClick={() => setActiveModal(null)} className="btn-close"><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="price-analysis">
+                <div className="price-cards">
+                  <div className="price-stat">
+                    <span>Precio Promedio CNH</span>
+                    <h4>$45.00 USD</h4>
+                  </div>
+                  <div className="price-stat">
+                    <span>Precio Mercado (Competencia)</span>
+                    <h4 className="text-warning">$49.50 USD</h4>
+                  </div>
+                </div>
+                
+                <div className="opportunity-box">
+                  <TrendingUp size={24} className="text-success" />
+                  <div>
+                    <h5>Oportunidad de Ajuste: +10%</h5>
+                    <p>Subir el precio a <strong>$48.00 USD</strong> mantendría competitividad y generaría +$24k estimados este trimestre.</p>
+                  </div>
+                </div>
+
+                <div className="modal-actions">
+                  <button className="btn btn-primary w-full" onClick={() => {
+                    alert('Ajuste de precio aplicado exitosamente');
+                    setActiveModal(null);
+                  }}>Aplicar Nuevo Precio ($48.00)</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
