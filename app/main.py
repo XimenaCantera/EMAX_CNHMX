@@ -36,14 +36,23 @@ def get_fuga_data():
     df_table.columns = ['Unidad', 'Distribuidor', 'Estatus', 'Horas de retraso', 'Frecuencia de servicio', 'Acción recomendada']
     
     df_fuga = df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente', 'CerradaFuera', 'Cerrada Fuera'])]
+    servicios_en_fuga = len(df_fuga)
+    total_servicios = len(df_mantenimientos)
+    pct_fuga = (servicios_en_fuga / total_servicios * 100) if total_servicios > 0 else 0
+    retraso_promedio = df_fuga['retraso_horas'].abs().mean()
+    if pd.isna(retraso_promedio):
+        retraso_promedio = 0
+    else:
+        retraso_promedio = int(retraso_promedio)
+
     records = df_table.fillna('').to_dict(orient='records')
-    # KPIs hardcodeados a petición para coincidir exactamente con el diseño
+    
     return jsonify({
         "kpis": {
-            "servicios_fuga": "18,279",
-            "pct_pendiente_cerrada_fuera": 76.47,
+            "servicios_fuga": f"{servicios_en_fuga:,}",
+            "pct_pendiente_cerrada_fuera": round(pct_fuga, 2),
             "meta_depuracion": "100% en 3 meses",
-            "retraso_promedio": "487 horas"
+            "retraso_promedio": f"{retraso_promedio} horas"
         },
         "table": records
     })
