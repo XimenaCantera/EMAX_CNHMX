@@ -4,13 +4,6 @@
   min-height: 100vh;
 }
 
-.mainTitle {
-  font-size: 2.5rem;
-  font-weight: 800;
-  color: #000;
-  margin-bottom: 2rem;
-}
-
 .kpiContainer {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -52,22 +45,23 @@
 }
 
 .contentLayout {
-  margin-bottom: 2rem;
+  display: flex;
+  gap: 2rem;
+  align-items: stretch;
 }
 
 .tableSection {
+  flex: 1.5;
   background-color: white;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
-  max-height: 400px;
 }
 
 .tableWrapper {
   overflow-x: auto;
-  overflow-y: auto;
   flex-grow: 1;
 }
 
@@ -108,77 +102,45 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1rem;
-  margin-top: 1.5rem;
-  font-weight: 600;
-  color: #000;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  font-weight: 700;
+  color: #111827;
+  font-size: 1.25rem;
 }
 
 .pageActive {
   background-color: #111827;
   color: white;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
 }
 
-.chartsWrapper {
-  background-color: transparent;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.tabsContainer {
-  display: flex;
-  gap: 1rem;
-}
-
-.tabBtn {
+.pageInactive {
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background-color: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-weight: 600;
-  color: #4b5563;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  justify-content: center;
 }
 
-.tabBtn:hover {
-  background-color: #f9fafb;
-}
-
-.tabActive {
-  background-color: #111827;
-  color: white;
-  border-color: #111827;
-}
-
-.tabActive:hover {
-  background-color: #1f2937;
-}
-
-.chartFrameContainer {
-  background-color: transparent;
-  width: 100%;
-  height: 600px;
-  border-radius: 12px;
-  overflow: hidden;
+.chartsSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 1150px;
 }
 
 .dashIframe {
   width: 100%;
   height: 100%;
   border: none;
+  min-height: 1150px;
 }
 
 .loading {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from './FugaServicios.module.css';
-import { Wrench, AlertTriangle, Target, Clock, ChevronLeft, ChevronRight, BarChart2, PieChart, BarChart } from 'lucide-react';
+import { Wrench, AlertTriangle, Target, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface FugaData {
   kpis: {
@@ -14,7 +14,6 @@ interface FugaData {
 
 export const FugaServicios: React.FC = () => {
   const [data, setData] = useState<FugaData | null>(null);
-  const [activeTab, setActiveTab] = useState<'histogram' | 'bar' | 'pie'>('histogram');
 
   useEffect(() => {
     fetch('http://127.0.0.1:8050/api/fuga-data')
@@ -42,12 +41,8 @@ export const FugaServicios: React.FC = () => {
     }
   };
 
-  const iframeUrl = `http://127.0.0.1:8050/dash/${activeTab}`;
-
   return (
     <div className={styles.container}>
-      <h1 className={styles.mainTitle}>Fuga de servicios</h1>
-
       <div className={styles.kpiContainer}>
         <div className={styles.kpiCard}>
           <div className={styles.kpiIcon}><Wrench size={24} /></div>
@@ -94,7 +89,7 @@ export const FugaServicios: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {data.table.map((row, idx) => (
+                {data.table.slice(0, 15).map((row, idx) => (
                   <tr key={idx}>
                     <td>{row['Unidad']}</td>
                     <td>{row['Distribuidor']}</td>
@@ -108,51 +103,25 @@ export const FugaServicios: React.FC = () => {
             </table>
           </div>
           <div className={styles.pagination}>
-            <ChevronLeft size={20} color="#9ca3af" />
+            <ChevronLeft size={24} color="#9ca3af" style={{ cursor: 'pointer' }} />
             <div className={styles.pageActive}>1</div>
-            <div>2</div>
-            <div>3</div>
-            <div>...</div>
-            <div>10</div>
-            <ChevronRight size={20} />
+            <div className={styles.pageInactive}>2</div>
+            <div className={styles.pageInactive}>3</div>
+            <div className={styles.pageInactive}>4</div>
+            <div className={styles.pageInactive}>...</div>
+            <div className={styles.pageInactive}>31</div>
+            <ChevronRight size={24} style={{ cursor: 'pointer' }} />
           </div>
         </div>
-      </div>
 
-      <div className={styles.chartsWrapper}>
-        <div className={styles.tabsContainer}>
-          <button 
-            className={`${styles.tabBtn} ${activeTab === 'histogram' ? styles.tabActive : ''}`} 
-            onClick={() => setActiveTab('histogram')}
-          >
-            <BarChart2 size={18} />
-            Distribución de retraso
-          </button>
-          <button 
-            className={`${styles.tabBtn} ${activeTab === 'bar' ? styles.tabActive : ''}`} 
-            onClick={() => setActiveTab('bar')}
-          >
-            <BarChart size={18} />
-            Fuga por distribuidor
-          </button>
-          <button 
-            className={`${styles.tabBtn} ${activeTab === 'pie' ? styles.tabActive : ''}`} 
-            onClick={() => setActiveTab('pie')}
-          >
-            <PieChart size={18} />
-            Proporción de estatus
-          </button>
-        </div>
-        
-        <div className={styles.chartFrameContainer}>
+        <div className={styles.chartsSection}>
           <iframe 
-            src={iframeUrl} 
+            src="http://127.0.0.1:8050/dash/" 
             className={styles.dashIframe}
             title="Dash Graphs"
           ></iframe>
         </div>
       </div>
-
     </div>
   );
 };
