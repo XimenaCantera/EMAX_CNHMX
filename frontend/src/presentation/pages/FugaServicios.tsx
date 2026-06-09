@@ -4,7 +4,7 @@ import { Wrench, Percent, Target, Clock } from 'lucide-react';
 
 interface FugaData {
   kpis: {
-    servicios_fuga: number;
+    servicios_fuga: string;
     pct_pendiente_cerrada_fuera: number;
     meta_depuracion: string;
     retraso_promedio: number;
@@ -50,7 +50,7 @@ export const FugaServicios: React.FC = () => {
           <div className={styles.kpiIcon}><Wrench size={24} /></div>
           <div className={styles.kpiInfo}>
             <p className={styles.kpiTitle}>Servicios en fuga</p>
-            <h2 className={styles.kpiValue}>{data.kpis.servicios_fuga.toLocaleString()}</h2>
+            <h2 className={styles.kpiValue}>{data.kpis.servicios_fuga}</h2>
           </div>
         </div>
         <div className={styles.kpiCard}>
