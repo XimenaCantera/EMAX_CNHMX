@@ -113,7 +113,7 @@ export const FugaServicios: React.FC = () => {
         <div className={styles.kpiCard}>
           <div className={styles.kpiIcon}><Clock size={24} /></div>
           <div className={styles.kpiInfo}>
-            <p className={styles.kpiTitle}>Retraso promedio (hrs)</p>
+            <p className={styles.kpiTitle}>Retraso promedio en unidades frecuentes</p>
             <h2 className={styles.kpiValue}>{data.kpis.retraso_promedio}</h2>
           </div>
         </div>
