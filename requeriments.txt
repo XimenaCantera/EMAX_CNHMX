@@ -1,6 +1,19 @@
-Lista de todas las librerías de Python utilizadas y su justificación
+Lista de todas las librerías de Python (y dependencias asociadas) utilizadas y su justificación:
 
+1. pandas
+   - Justificación: Utilizada para la carga, lectura y manipulación de datos estructurados (Dataframes) a partir del archivo de Excel (`new_mantenimientos.xlsx`). Nos permitió limpiar celdas vacías (`fillna`), calcular diferencias matemáticas (horas de retraso) y convertir la estructura al formato de diccionario JSON que consume el frontend.
 
-1. 
-2. 
-3. 
+2. Flask
+   - Justificación: Framework principal que sirve como base para levantar el servidor Backend. Se usó para crear la ruta o API Endpoint (`/api/fuga-data`) encargada de transmitir los indicadores (KPIs) y la tabla de datos hacia React.
+
+3. flask-cors (CORS)
+   - Justificación: Librería de seguridad esencial para habilitar el intercambio de recursos de origen cruzado (Cross-Origin Resource Sharing). Permitió que tu Frontend en React (que corre en un puerto local distinto) tuviera los permisos para hacerle peticiones HTTP de datos a Python sin que el navegador bloqueara la conexión.
+
+4. dash
+   - Justificación: Framework analítico avanzado montado encima de Flask. Se utilizó específicamente para generar un servidor web interno de visualización de datos, permitiéndonos servir los gráficos interactivos e insertarlos en el diseño de React a través de un `iframe`.
+
+5. plotly (plotly.express)
+   - Justificación: El motor visual principal de gráficos usado por Dash. Se utilizó para dibujar, estilizar (colores, márgenes, bordes) e interactuar matemáticamente con el Histograma de distribución, el Gráfico de barras y la Gráfica de pastel de proporción de estatus.
+
+6. openpyxl
+   - Justificación: Dependencia de lectura (motor de Excel) que trabaja silenciosamente en conjunto con Pandas. Es estrictamente necesaria para poder leer e interpretar archivos con la extensión `.xlsx` en Python.
