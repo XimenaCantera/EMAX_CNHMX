@@ -172,7 +172,7 @@ export const Dashboard: React.FC = () => {
               <TrendingUp size={20} className="text-primary" />
               <h4 className="font-bold">Revisar Precios Aftermarket</h4>
             </div>
-            <p className="text-sm text-muted mb-auto">Nueva data de mercado sugiere oportunidad de ajuste de precios en filtros hidráulicos.</p>
+            <p className="text-sm text-muted mb-auto">Nueva data de mercado sugiere oportunidad de ajuste de precios en {dashboardData?.actions?.prices?.product?.toLowerCase() || 'filtros hidráulicos'}.</p>
             <button className="btn btn-neutral w-full mt-lg" onClick={() => setActiveModal('prices')}>Analizar Data</button>
           </div>
         </div>
@@ -269,7 +269,7 @@ export const Dashboard: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>Análisis de Precios: Filtros Hidráulicos</h3>
+              <h3>Análisis de Precios: {dashboardData?.actions?.prices?.product || 'Filtros Hidráulicos'}</h3>
               <button onClick={() => setActiveModal(null)} className="btn-close"><X size={20} /></button>
             </div>
             <div className="modal-body">
@@ -277,19 +277,19 @@ export const Dashboard: React.FC = () => {
                 <div className="price-cards">
                   <div className="price-stat">
                     <span>Precio Promedio CNH</span>
-                    <h4>$45.00 USD</h4>
+                    <h4>${dashboardData?.actions?.prices?.current_price?.toFixed(2) || '45.00'} USD</h4>
                   </div>
                   <div className="price-stat">
                     <span>Precio Mercado (Competencia)</span>
-                    <h4 className="text-warning">$49.50 USD</h4>
+                    <h4 className="text-warning">${dashboardData?.actions?.prices?.market_price?.toFixed(2) || '49.50'} USD</h4>
                   </div>
                 </div>
                 
                 <div className="opportunity-box">
                   <TrendingUp size={24} className="text-success" />
                   <div>
-                    <h5>Oportunidad de Ajuste: +10%</h5>
-                    <p>Subir el precio a <strong>$48.00 USD</strong> mantendría competitividad y generaría +$24k estimados este trimestre.</p>
+                    <h5>Oportunidad de Ajuste: +{(((dashboardData?.actions?.prices?.new_price || 48) / (dashboardData?.actions?.prices?.current_price || 45) - 1) * 100).toFixed(0)}%</h5>
+                    <p>Subir el precio a <strong>${dashboardData?.actions?.prices?.new_price?.toFixed(2) || '48.00'} USD</strong> mantendría competitividad y generaría +${dashboardData?.actions?.prices?.estimated_gain_k || 24}k estimados este trimestre.</p>
                   </div>
                 </div>
 
@@ -297,7 +297,7 @@ export const Dashboard: React.FC = () => {
                   <button className="btn btn-primary w-full" onClick={() => {
                     alert('Ajuste de precio aplicado exitosamente');
                     setActiveModal(null);
-                  }}>Aplicar Nuevo Precio ($48.00)</button>
+                  }}>Aplicar Nuevo Precio (${dashboardData?.actions?.prices?.new_price?.toFixed(2) || '48.00'})</button>
                 </div>
               </div>
             </div>

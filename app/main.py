@@ -88,6 +88,15 @@ def get_dashboard_data():
                 "status": "Pendiente"
             })
             
+        # Extraer el modelo más común para la tarjeta de precios
+        top_modelo = df_mantenimientos['MODELO'].value_counts().index[0] if not df_mantenimientos.empty else "Filtros Hidráulicos"
+        
+        # Generar precios simulados para la oportunidad del top modelo
+        precio_cnh = 45.00
+        precio_mercado = 49.50
+        precio_nuevo = 48.00
+        ganancia_estimada = len(df_mantenimientos[df_mantenimientos['MODELO'] == top_modelo]) * (precio_nuevo - precio_cnh) / 1000
+
         return jsonify({
             "actions": {
                 "campaign": {
@@ -97,6 +106,13 @@ def get_dashboard_data():
                 "kits": {
                     "requests": requests_list,
                     "total_pending": len(df_mantenimientos[df_mantenimientos['ESTATUS'] == 'Pendiente'])
+                },
+                "prices": {
+                    "product": f"Refacciones para {top_modelo}",
+                    "current_price": precio_cnh,
+                    "market_price": precio_mercado,
+                    "new_price": precio_nuevo,
+                    "estimated_gain_k": round(ganancia_estimada, 1)
                 }
             }
         })
