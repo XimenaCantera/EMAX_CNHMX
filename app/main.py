@@ -60,19 +60,19 @@ if not df_mantenimientos.empty:
 
     fig_hist = px.histogram(df_mantenimientos, x="retraso_horas", title="Distribución de retraso en horas", color_discrete_sequence=['#4f46e5'])
     fig_hist.update_layout(
-        margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300,
+        margin=dict(l=20, r=20, t=40, b=40), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=350,
         title_font=dict(size=18, family="sans-serif", color="black")
     )
 
     fig_bar = px.histogram(df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente', 'Cerrada Fuera'])], x="DISTRIBUIDOR", title="Servicios en fuga por distribuidor", color_discrete_sequence=['#ef4444'])
     fig_bar.update_layout(
-        margin=dict(l=20, r=20, t=40, b=60), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis_tickangle=-90, height=300,
+        margin=dict(l=20, r=20, t=40, b=120), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis_tickangle=-90, height=350,
         title_font=dict(size=18, family="sans-serif", color="black")
     )
 
     fig_pie = px.pie(df_mantenimientos, names='ESTATUS', title="Proporción de estatus de servicio", hole=0, color='ESTATUS', color_discrete_map=color_discrete_map)
     fig_pie.update_layout(
-        margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300,
+        margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=350,
         title_font=dict(size=18, family="sans-serif", color="black")
     )
 else:
