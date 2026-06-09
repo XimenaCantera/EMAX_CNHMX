@@ -29,7 +29,7 @@
 }
 
 .kpiIcon {
-  color: #1e3a8a; /* Dark blue icon */
+  color: #1e3a8a;
 }
 
 .kpiInfo {
@@ -52,23 +52,22 @@
 }
 
 .contentLayout {
-  display: flex;
-  gap: 2rem;
-  align-items: flex-start;
+  margin-bottom: 2rem;
 }
 
 .tableSection {
-  flex: 0.8;
   background-color: white;
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
+  max-height: 400px;
 }
 
 .tableWrapper {
   overflow-x: auto;
+  overflow-y: auto;
   flex-grow: 1;
 }
 
@@ -99,30 +98,11 @@
   font-size: 0.75rem;
 }
 
-.estatusPendiente {
-  background-color: #fef2f2;
-  color: #ef4444;
-}
-
-.estatusCerradaFuera {
-  background-color: #eff6ff;
-  color: #3b82f6;
-}
-
-.estatusPorVencer {
-  background-color: #fefce8;
-  color: #eab308;
-}
-
-.estatusCerrada {
-  background-color: #f0fdf4;
-  color: #22c55e;
-}
-
-.estatusDefault {
-  background-color: #f3f4f6;
-  color: #374151;
-}
+.estatusPendiente { background-color: #fef2f2; color: #ef4444; }
+.estatusCerradaFuera { background-color: #eff6ff; color: #3b82f6; }
+.estatusPorVencer { background-color: #fefce8; color: #eab308; }
+.estatusCerrada { background-color: #f0fdf4; color: #22c55e; }
+.estatusDefault { background-color: #f3f4f6; color: #374151; }
 
 .pagination {
   display: flex;
@@ -145,18 +125,60 @@
   border-radius: 8px;
 }
 
-.chartsSection {
-  flex: 1.5;
+.chartsWrapper {
+  background-color: transparent;
   display: flex;
   flex-direction: column;
-  min-height: 1100px;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.tabsContainer {
+  display: flex;
+  gap: 1rem;
+}
+
+.tabBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.tabBtn:hover {
+  background-color: #f9fafb;
+}
+
+.tabActive {
+  background-color: #111827;
+  color: white;
+  border-color: #111827;
+}
+
+.tabActive:hover {
+  background-color: #1f2937;
+}
+
+.chartFrameContainer {
+  background-color: transparent;
+  width: 100%;
+  height: 600px;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .dashIframe {
   width: 100%;
   height: 100%;
   border: none;
-  min-height: 1100px;
 }
 
 .loading {

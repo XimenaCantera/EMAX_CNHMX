@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './FugaServicios.module.css';
-import { Wrench, Percent, Target, Clock } from 'lucide-react';
+import { Wrench, AlertTriangle, Target, Clock, ChevronLeft, ChevronRight, BarChart2, PieChart, BarChart } from 'lucide-react';
 
 interface FugaData {
   kpis: {
@@ -9,37 +9,40 @@ interface FugaData {
     meta_depuracion: string;
     retraso_promedio: number;
   };
-  table: Array<{
-    Unidad: string;
-    Distribuidor: string;
-    Estatus: string;
-    'Horas de retraso': number;
-    'Frecuencia de servicio': string;
-    'Acción recomendada': string;
-  }>;
+  table: any[];
 }
 
 export const FugaServicios: React.FC = () => {
   const [data, setData] = useState<FugaData | null>(null);
+  const [activeTab, setActiveTab] = useState<'histogram' | 'bar' | 'pie'>('histogram');
 
   useEffect(() => {
     fetch('http://127.0.0.1:8050/api/fuga-data')
-      .then((res) => res.json())
-      .then((json) => setData(json))
-      .catch((err) => console.error('Error fetching data:', err));
+      .then(res => res.json())
+      .then(d => setData(d))
+      .catch(err => console.error(err));
   }, []);
 
   if (!data) {
-    return <div className={styles.loading}>Cargando datos del servidor Python...</div>;
+    return <div className={styles.loading}>Cargando datos híbridos...</div>;
   }
 
-  const getEstatusClass = (estatus: string) => {
-    if (estatus === 'Pendiente') return styles.estatusPendiente;
-    if (estatus === 'Cerrada Fuera') return styles.estatusCerradaFuera;
-    if (estatus === 'Por vencer') return styles.estatusPorVencer;
-    if (estatus === 'Cerrada') return styles.estatusCerrada;
-    return styles.estatusDefault;
+  const renderEstatus = (estatus: string) => {
+    switch (estatus) {
+      case 'Pendiente':
+        return <span className={`${styles.badge} ${styles.estatusPendiente}`}>Pendiente</span>;
+      case 'Cerrada Fuera':
+        return <span className={`${styles.badge} ${styles.estatusCerradaFuera}`}>Cerrada Fuera</span>;
+      case 'Por vencer':
+        return <span className={`${styles.badge} ${styles.estatusPorVencer}`}>Por vencer</span>;
+      case 'Cerrada':
+        return <span className={`${styles.badge} ${styles.estatusCerrada}`}>Cerrada</span>;
+      default:
+        return <span className={`${styles.badge} ${styles.estatusDefault}`}>{estatus}</span>;
+    }
   };
+
+  const iframeUrl = `http://127.0.0.1:8050/dash/${activeTab}`;
 
   return (
     <div className={styles.container}>
@@ -54,7 +57,7 @@ export const FugaServicios: React.FC = () => {
           </div>
         </div>
         <div className={styles.kpiCard}>
-          <div className={styles.kpiIcon}><Percent size={24} /></div>
+          <div className={styles.kpiIcon}><AlertTriangle size={24} /></div>
           <div className={styles.kpiInfo}>
             <p className={styles.kpiTitle}>% Pendiente/Cerrada Fuera</p>
             <h2 className={styles.kpiValue}>{data.kpis.pct_pendiente_cerrada_fuera}%</h2>
@@ -70,8 +73,8 @@ export const FugaServicios: React.FC = () => {
         <div className={styles.kpiCard}>
           <div className={styles.kpiIcon}><Clock size={24} /></div>
           <div className={styles.kpiInfo}>
-            <p className={styles.kpiTitle}>Retraso promedio en unidades frecuentes</p>
-            <h2 className={styles.kpiValue}>{data.kpis.retraso_promedio} horas</h2>
+            <p className={styles.kpiTitle}>Retraso promedio (hrs)</p>
+            <h2 className={styles.kpiValue}>{data.kpis.retraso_promedio}</h2>
           </div>
         </div>
       </div>
@@ -93,9 +96,9 @@ export const FugaServicios: React.FC = () => {
               <tbody>
                 {data.table.map((row, idx) => (
                   <tr key={idx}>
-                    <td>{row.Unidad}</td>
-                    <td>{row.Distribuidor}</td>
-                    <td><span className={`${styles.badge} ${getEstatusClass(row.Estatus)}`}>{row.Estatus}</span></td>
+                    <td>{row['Unidad']}</td>
+                    <td>{row['Distribuidor']}</td>
+                    <td>{renderEstatus(row['Estatus'])}</td>
                     <td>{row['Horas de retraso']}</td>
                     <td>{row['Frecuencia de servicio']}</td>
                     <td>{row['Acción recomendada']}</td>
@@ -105,25 +108,51 @@ export const FugaServicios: React.FC = () => {
             </table>
           </div>
           <div className={styles.pagination}>
-            <span>&lt;</span>
-            <span className={styles.pageActive}>1</span>
-            <span>2</span>
-            <span>3</span>
-            <span>4</span>
-            <span>...</span>
-            <span>31</span>
-            <span>&gt;</span>
+            <ChevronLeft size={20} color="#9ca3af" />
+            <div className={styles.pageActive}>1</div>
+            <div>2</div>
+            <div>3</div>
+            <div>...</div>
+            <div>10</div>
+            <ChevronRight size={20} />
           </div>
         </div>
+      </div>
 
-        <div className={styles.chartsSection}>
+      <div className={styles.chartsWrapper}>
+        <div className={styles.tabsContainer}>
+          <button 
+            className={`${styles.tabBtn} ${activeTab === 'histogram' ? styles.tabActive : ''}`} 
+            onClick={() => setActiveTab('histogram')}
+          >
+            <BarChart2 size={18} />
+            Distribución de retraso
+          </button>
+          <button 
+            className={`${styles.tabBtn} ${activeTab === 'bar' ? styles.tabActive : ''}`} 
+            onClick={() => setActiveTab('bar')}
+          >
+            <BarChart size={18} />
+            Fuga por distribuidor
+          </button>
+          <button 
+            className={`${styles.tabBtn} ${activeTab === 'pie' ? styles.tabActive : ''}`} 
+            onClick={() => setActiveTab('pie')}
+          >
+            <PieChart size={18} />
+            Proporción de estatus
+          </button>
+        </div>
+        
+        <div className={styles.chartFrameContainer}>
           <iframe 
-            src="http://127.0.0.1:8050/dash/" 
-            className={styles.dashIframe} 
-            title="Dash Graphs" 
-          />
+            src={iframeUrl} 
+            className={styles.dashIframe}
+            title="Dash Graphs"
+          ></iframe>
         </div>
       </div>
+
     </div>
   );
 };
