@@ -162,9 +162,7 @@ def obtener_data(clean_files_dir):
         medio_pct = 0.0
         bajo_pct = 0.0
         
-    # 7. Acciones Recomendadas dinámicas
-    
-    # Distribuidor con más unidades en alerta
+    #Distribuidor con más unidades en alerta
     if len(unidades_alerta) > 0 and 'DISTRIBUIDOR' in unidades_alerta.columns:
         conteo_distribuidores = unidades_alerta['DISTRIBUIDOR'].value_counts()
     
