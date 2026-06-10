@@ -4,6 +4,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from dash import Dash, dcc, html
 import plotly.express as px
+import math
 
 server = Flask(__name__)
 CORS(server)
@@ -49,15 +50,53 @@ def get_fuga_data():
     else:
         retraso_promedio = int(retraso_promedio)
 
+    p_global = (servicios_en_fuga / total_servicios) if total_servicios > 0 else 0
+    if total_servicios > 0:
+        se_global = math.sqrt(p_global * (1 - p_global) / total_servicios)
+        ci_lower = round((p_global - 1.96 * se_global) * 100, 2)
+        ci_upper = round((p_global + 1.96 * se_global) * 100, 2)
+    else:
+        ci_lower, ci_upper = 0, 0
+        
+    p_obs_local = len(df_fuga) / len(df_mantenimientos) if len(df_mantenimientos) > 0 else 0
+    distribuidores_analisis = []
+    
+    if p_obs_local > 0:
+        dist_group = df_mantenimientos.groupby('DISTRIBUIDOR')
+        for dist, group in dist_group:
+            n_i = len(group)
+            x_i = len(group[group['ESTATUS'].isin(['Pendiente', 'CerradaFuera', 'Cerrada Fuera'])])
+            if n_i == 0:
+                continue
+            p_i = x_i / n_i
+            if p_obs_local > 0 and p_obs_local < 1:
+                z_stat = (p_i - p_obs_local) / math.sqrt(p_obs_local * (1 - p_obs_local) / n_i)
+            else:
+                z_stat = 0
+            significant_alert = bool(z_stat > 1.96 and p_i > p_obs_local)
+            
+            distribuidores_analisis.append({
+                "distribuidor": str(dist),
+                "total_servicios": n_i,
+                "fugas": x_i,
+                "pct_fuga": round(p_i * 100, 2),
+                "z_score": round(z_stat, 2),
+                "significant_alert": significant_alert
+            })
+        distribuidores_analisis.sort(key=lambda k: k['z_score'], reverse=True)
+
     records = df_table.fillna('').to_dict(orient='records')
     
     return jsonify({
         "kpis": {
             "servicios_fuga": f"{servicios_en_fuga:,}",
             "pct_pendiente_cerrada_fuera": round(pct_fuga, 2),
+            "ci_lower": ci_lower,
+            "ci_upper": ci_upper,
             "meta_depuracion": "100% en 3 meses",
             "retraso_promedio": f"{retraso_promedio} horas"
         },
+        "distribuidores_analisis": distribuidores_analisis,
         "table": records
     })
 

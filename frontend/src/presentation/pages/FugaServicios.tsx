@@ -2,13 +2,25 @@ import React, { useState, useEffect } from 'react';
 import styles from './FugaServicios.module.css';
 import { Wrench, AlertTriangle, Target, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 
+interface DistributorAnalysis {
+  distribuidor: string;
+  total_servicios: number;
+  fugas: number;
+  pct_fuga: number;
+  z_score: number;
+  significant_alert: boolean;
+}
+
 interface FugaData {
   kpis: {
     servicios_fuga: string;
     pct_pendiente_cerrada_fuera: number;
+    ci_lower?: number;
+    ci_upper?: number;
     meta_depuracion: string;
     retraso_promedio: number;
   };
+  distribuidores_analisis?: DistributorAnalysis[];
   table: any[];
 }
 
@@ -101,6 +113,11 @@ export const FugaServicios: React.FC = () => {
           <div className={styles.kpiInfo}>
             <p className={styles.kpiTitle}>% Pendiente/Cerrada Fuera</p>
             <h2 className={styles.kpiValue}>{data.kpis.pct_pendiente_cerrada_fuera}%</h2>
+            {data.kpis.ci_lower !== undefined && data.kpis.ci_upper !== undefined && (
+              <p className={styles.kpiTooltip} title="Intervalo de confianza al 95%">
+                (IC95%: {data.kpis.ci_lower}% - {data.kpis.ci_upper}%)
+              </p>
+            )}
           </div>
         </div>
         <div className={styles.kpiCard}>
@@ -120,7 +137,48 @@ export const FugaServicios: React.FC = () => {
       </div>
 
       <div className={styles.contentLayout}>
+        {data.distribuidores_analisis && data.distribuidores_analisis.length > 0 && (
+          <div className={styles.tableSection} style={{ marginBottom: '2rem' }}>
+            <h3 style={{marginBottom: '1rem', color: '#111827', fontSize: '1.125rem'}}>Análisis Estadístico Z de Fuga por Distribuidor</h3>
+            <div className={styles.tableWrapper}>
+              <table className={styles.dataTable}>
+                <thead>
+                  <tr>
+                    <th>Distribuidor</th>
+                    <th>Total Servicios</th>
+                    <th>Fugas</th>
+                    <th>% Fuga</th>
+                    <th>Puntuación Z</th>
+                    <th>Alerta Estadística</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.distribuidores_analisis.map((row, idx) => (
+                    <tr key={idx} style={{ backgroundColor: row.significant_alert ? '#fee2e2' : 'transparent' }}>
+                      <td style={{fontWeight: 'bold'}}>{row.distribuidor}</td>
+                      <td>{row.total_servicios}</td>
+                      <td>{row.fugas}</td>
+                      <td>{row.pct_fuga}%</td>
+                      <td>{row.z_score}</td>
+                      <td>
+                        {row.significant_alert ? (
+                          <span style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
+                            <AlertTriangle size={16} /> Significativamente alto
+                          </span>
+                        ) : (
+                          <span style={{ color: '#4b5563' }}>Normal</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         <div className={styles.tableSection}>
+          <h3 style={{marginBottom: '1rem', color: '#111827', fontSize: '1.125rem'}}>Detalle de Unidades en Fuga</h3>
           <div className={styles.tableWrapper}>
             <table className={styles.dataTable}>
               <thead>
