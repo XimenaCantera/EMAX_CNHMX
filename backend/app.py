@@ -188,5 +188,11 @@ def descargar_tabla_riesgo():
 
 print("Iniciando servidor Flask...")
 
+# =============================================================
+# Integrar Dash de Riesgo Operativo
+# =============================================================
+from riesgo_operativo import init_riesgo_operativo
+init_riesgo_operativo(app)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)

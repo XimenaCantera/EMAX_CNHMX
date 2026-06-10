@@ -1,22 +1,26 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, DollarSign, Users, Tractor, Upload, UserCircle } from 'lucide-react';
+import { Home, Wrench, AlertTriangle, DollarSign, Users, ClipboardList, Upload } from 'lucide-react';
+import logoCnh from '../../../assets/logo_cnh.png';
 import './Sidebar.css';
 
 const navItems = [
   { path: '/', icon: <Home size={20} />, label: 'Inicio' },
+  { path: '/fuga-servicios', icon: <Wrench size={20} />, label: 'Fuga de servicios' },
+  { path: '/riesgo-operativo', icon: <AlertTriangle size={20} />, label: 'Riesgo operativo' },
   { path: '/monetization', icon: <DollarSign size={20} />, label: 'Monetización' },
   { path: '/distributors', icon: <Users size={20} />, label: 'Distribuidores' },
-  { path: '/unit', icon: <Tractor size={20} />, label: 'Unidad' },
-  { path: '/import', icon: <Upload size={20} />, label: 'Importar' },
+  { path: '/plan-meses', icon: <ClipboardList size={20} />, label: 'Plan a meses' },
+  { path: '/import', icon: <Upload size={20} />, label: 'Importar datos' },
 ];
 
 export const Sidebar: React.FC = () => {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <h1>CNH<br />Industrial</h1>
-        <p className="sidebar-subtitle">Control Panel</p>
+        <div className="sidebar-logo">
+          <img src={logoCnh} alt="CNH Industrial Logo" className="logo-img" />
+        </div>
       </div>
 
       <nav className="sidebar-nav">
@@ -31,16 +35,6 @@ export const Sidebar: React.FC = () => {
           </NavLink>
         ))}
       </nav>
-
-      <div className="sidebar-footer">
-        <div className="user-profile">
-          <UserCircle size={32} />
-          <div className="user-info">
-            <span className="user-name">Admin User</span>
-            <span className="user-status">Session Active</span>
-          </div>
-        </div>
-      </div>
     </aside>
   );
 };

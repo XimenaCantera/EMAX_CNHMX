@@ -38,6 +38,16 @@ PLANTILLA_HTML_CARGANDO = '''
                             if (!cargandoEl && puntoEntrada.children.length > 0) {
                                 window.parent.postMessage({ type: 'DASH_LOADED' }, '*');
                                 observador.disconnect();
+
+                                // Enviar altura real al padre en intervalos para capturar renders tardíos de Plotly
+                                var enviarAltura = function() {
+                                    var altura = document.documentElement.scrollHeight;
+                                    window.parent.postMessage({ type: 'DASH_HEIGHT', height: altura }, '*');
+                                };
+                                setTimeout(enviarAltura, 500);
+                                setTimeout(enviarAltura, 1500);
+                                setTimeout(enviarAltura, 3000);
+                                setTimeout(enviarAltura, 5000);
                             }
                         });
                         observador.observe(puntoEntrada, { childList: true, subtree: true });
@@ -47,6 +57,14 @@ PLANTILLA_HTML_CARGANDO = '''
                         if (!cargandoEl && puntoEntrada.children.length > 0) {
                             window.parent.postMessage({ type: 'DASH_LOADED' }, '*');
                             observador.disconnect();
+                            var enviarAltura = function() {
+                                var altura = document.documentElement.scrollHeight;
+                                window.parent.postMessage({ type: 'DASH_HEIGHT', height: altura }, '*');
+                            };
+                            setTimeout(enviarAltura, 500);
+                            setTimeout(enviarAltura, 1500);
+                            setTimeout(enviarAltura, 3000);
+                            setTimeout(enviarAltura, 5000);
                         }
                     }
                 });
