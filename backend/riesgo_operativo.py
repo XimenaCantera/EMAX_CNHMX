@@ -18,6 +18,9 @@ def init_riesgo_operativo(server):
         external_stylesheets=['https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap']
     )
 
+    from plantillas_dash import PLANTILLA_HTML_CARGANDO
+    app_dash.index_string = PLANTILLA_HTML_CARGANDO
+
     def serve_layout():
         maint_path = os.path.join(CLEAN_FILES_DIR, 'new_mantenimientos.xlsx')
         
@@ -91,6 +94,7 @@ def init_riesgo_operativo(server):
                 y='Unidades en Alerta Roja',
                 size='Total Unidades',
                 color='DISTRIBUIDOR',
+                color_discrete_sequence=['#991b1b', '#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fee2e2'],
                 hover_name='DISTRIBUIDOR',
                 title='Matriz de riesgo por distribuidor',
                 labels={
@@ -133,7 +137,7 @@ def init_riesgo_operativo(server):
                 title='Top 10 unidades críticas por antigüedad de alerta',
                 labels={'antiguedad_alerta': 'Antigüedad de la Alerta (Días)', 'ALIAS': 'Unidad ALIAS'},
                 color='antiguedad_alerta',
-                color_continuous_scale='Oranges_r'
+                color_continuous_scale='Reds_r'
             )
             
             fig_oldest_alerts.update_xaxes(categoryorder='total descending')
@@ -198,7 +202,7 @@ def init_riesgo_operativo(server):
                             ], style={
                                 'flex-grow': '1'
                                 }),
-                            # SVG Icono de advertencia
+                            # Icono de advertencia
                             html.Div([
                                 html.Img(src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', style={'width': '24px', 'height': '24px'})
                             ], style={'display': 'flex', 'align-items': 'center', 'justify-content': 'center', 'background-color': '#fef2f2', 'padding': '12px', 'border-radius': '8px'})
