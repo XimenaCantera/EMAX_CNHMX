@@ -156,7 +156,7 @@ export const Distributors: React.FC = () => {
           </div>
         </div>
         
-        {/* Placeholder for the line chart */}
+        {/* Marcador para la gráfica de líneas */}
         <div className="chart-placeholder">
           <svg viewBox="0 0 800 200" className="mock-chart">
             <path d="M 50 180 Q 200 150 400 120 T 750 40" fill="none" stroke="var(--color-primary-light)" strokeWidth="4" />

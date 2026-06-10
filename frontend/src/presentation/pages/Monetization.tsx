@@ -173,7 +173,7 @@ export const Monetization: React.FC = () => {
   );
 };
 
-// Activity component replacement since it wasn't imported
+// Reemplazo del componente Activity ya que no fue importado
 const Activity = ({size, className}: {size: number, className?: string}) => (
   <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
 );

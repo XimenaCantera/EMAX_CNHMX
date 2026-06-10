@@ -46,7 +46,7 @@ const initialPlanData: PlanSection[] = [
 export const ActionPlan: React.FC = () => {
   const [plans, setPlans] = useState<PlanSection[]>(initialPlanData);
 
-  // Extract financial metrics from JSON
+  // Extraer métricas financieras del JSON
   const impactRow = financialData.find(r => typeof r.Concepto === 'string' && r.Concepto.includes('Total de impacto en 9 meses'));
   const investmentRow = financialData.find(r => typeof r.Concepto === 'string' && r.Concepto.includes('Inversión Inicial Estimada'));
   const roiRow = financialData.find(r => typeof r.Concepto === 'string' && r.Concepto.includes('Retorno de Inversión'));
@@ -74,7 +74,7 @@ export const ActionPlan: React.FC = () => {
     <div className={styles.container}>
       <h1 className={styles.mainTitle}>Avance para Plan de Acción</h1>
       
-      {/* Financial KPIs Section */}
+      {/* Sección de KPIs Financieros */}
       <div className={styles.kpiContainer}>
         <div className={styles.kpiCard}>
           <h3>Impacto Total (9 meses)</h3>
@@ -141,7 +141,7 @@ export const ActionPlan: React.FC = () => {
                     >
                       <div className={styles.progressKnob}></div>
                     </div>
-                    {/* Visual dots at 25%, 50%, 75% on the background to mimic the screenshot */}
+                    {/* Puntos visuales al 25%, 50%, 75% en el fondo para imitar el diseño */}
                     <div className={styles.progressDot} style={{ left: '25%' }}></div>
                     <div className={styles.progressDot} style={{ left: '50%' }}></div>
                     <div className={styles.progressDot} style={{ left: '75%' }}></div>
