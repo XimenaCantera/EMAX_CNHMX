@@ -303,8 +303,7 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
                         "servicios_oportunidad": int(row["servicios_oportunidad"])
                     })
 
-    print("==================================\n")
-    
+    # Generar mapa en distribuidores
     global _CACHE_MAPA
     _CACHE_MAPA = html_mapa
 
@@ -475,10 +474,17 @@ def obtener_datos_distribuidores(directorio_archivos_limpios):
                 'horas_actuales': horas_actuales
             })
 
+    try:
+        data_dash = obtener_data(directorio_archivos_limpios)
+        recs = data_dash.get('recomendaciones', {})
+    except Exception:
+        recs = {}
+
     return {
         'total_distribuidores': total_distribuidores,
         'pendientes_por_atender': pendientes_por_atender,
         'unidades_alerta_roja': unidades_alerta_roja,
         'top_distribuidores': top_distribuidores,
-        'lista_unidades': lista_unidades
+        'lista_unidades': lista_unidades,
+        'recomendaciones': recs
     }

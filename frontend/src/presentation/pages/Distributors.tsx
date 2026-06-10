@@ -17,17 +17,30 @@ interface UnidadLista {
   horas_actuales: number;
 }
 
+interface TopCiudad {
+  Ciudad: string;
+  Estado: string;
+  unidades_prioritarias: number;
+  criticas: number;
+  altas: number;
+  servicios_oportunidad: number;
+}
+
 interface DatosDistribuidores {
   total_distribuidores: number;
   pendientes_por_atender: number;
   unidades_alerta_roja: number;
   top_distribuidores: TopDistribuidor[];
   lista_unidades: UnidadLista[];
+  recomendaciones?: {
+    nota_ejecutiva?: string;
+    top_5_ciudades?: TopCiudad[];
+  };
 }
 
 const calcularProximoServicio = (horas: number): string => {
   if (horas === undefined || horas === null || isNaN(horas) || horas === 0) return "No disponible";
-  
+
   const intervalos = [300, 600, 900, 1200, 1500, 1800, 2100, 2400];
   for (let intervalo of intervalos) {
     if (horas < intervalo) {
@@ -55,9 +68,9 @@ const obtenerClaseRiesgoBg = (riesgo: string): string => {
 
 const obtenerClaseEstatus = (estatus: string): string => {
   const e = estatus.toLowerCase();
-  if (e === 'pendiente') return 'badge-warning'; 
-  if (e === 'cerradafuera' || e === 'cerrada fuera') return 'badge-primary'; 
-  if (e === 'cerrada') return 'badge-success'; 
+  if (e === 'pendiente') return 'badge-warning';
+  if (e === 'cerradafuera' || e === 'cerrada fuera') return 'badge-primary';
+  if (e === 'cerrada') return 'badge-success';
   if (e === 'porvencer') return 'badge-warning';
   return 'badge-neutral';
 };
@@ -65,7 +78,7 @@ const obtenerClaseEstatus = (estatus: string): string => {
 // Paleta de colores Reds_r (de oscuro a claro)
 const obtenerColorRojo = (index: number, total: number): string => {
   const palette = [
-    '#67000d', '#a50f15', '#cb181d', '#ef3b2c', '#fb6a4a', 
+    '#67000d', '#a50f15', '#cb181d', '#ef3b2c', '#fb6a4a',
     '#fc9272', '#fcbba1', '#fee0d2', '#fff5f0', '#ffffff'
   ];
   return palette[Math.min(index, palette.length - 1)];
@@ -81,7 +94,7 @@ export const Distributors: React.FC = () => {
       try {
         const respuesta = await fetch('http://localhost:5001/api/distribuidores');
         const json = await respuesta.json();
-        
+
         if (json.success && json.data) {
           setDatos(json.data);
         } else {
@@ -129,7 +142,7 @@ export const Distributors: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="card kpi-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid black', color: 'black' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <FileText size={40} color="black" />
@@ -170,7 +183,7 @@ export const Distributors: React.FC = () => {
                     <th style={{ padding: '8px' }}>Distribuidor</th>
                     <th style={{ padding: '8px', textAlign: 'center' }}>Unidades en Alerta Roja</th>
                     <th style={{ padding: '8px', textAlign: 'center' }}>Total de unidades</th>
-                    <th style={{ padding: '8px', textAlign: 'center' }}>Porcentaje entre<br/>todas las unidades</th>
+                    <th style={{ padding: '8px', textAlign: 'center' }}>Porcentaje entre<br />todas las unidades</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -185,55 +198,6 @@ export const Distributors: React.FC = () => {
                   {datos.top_distribuidores.length === 0 && (
                     <tr>
                       <td colSpan={4} style={{ padding: '12px 8px', textAlign: 'center' }}>No hay datos disponibles</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Tabla completa de unidades */}
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 className="card-title" style={{ fontSize: '16px', fontWeight: 'bold', margin: 0 }}>Unidades</h3>
-              <span style={{ fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Ver más</span>
-            </div>
-            <div className="table-responsive" style={{ maxHeight: '350px', overflowY: 'auto' }}>
-              <table className="clean-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '12px' }}>
-                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#fff', zIndex: 1 }}>
-                  <tr style={{ borderBottom: '1px solid var(--color-border)', color: 'var(--color-main)' }}>
-                    <th style={{ padding: '8px' }}>Unidad</th>
-                    <th style={{ padding: '8px' }}>Distribuidor</th>
-                    <th style={{ padding: '8px', textAlign: 'center' }}>Estatus</th>
-                    <th style={{ padding: '8px', textAlign: 'center' }}>Riesgo</th>
-                    <th style={{ padding: '8px' }}>Próximo servicio</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {datos.lista_unidades.map((unidad, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid var(--color-bg)' }}>
-                      <td style={{ padding: '10px 8px' }} className="text-main">{unidad.unidad}</td>
-                      <td style={{ padding: '10px 8px' }} className="text-main">{unidad.distribuidor}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${obtenerClaseEstatus(unidad.estatus)}`}>
-                          {unidad.estatus}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${obtenerClaseRiesgoBg(unidad.riesgo)}`}>
-                          {unidad.riesgo}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px 8px' }} className="text-main">
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span>{calcularProximoServicio(unidad.horas_actuales)}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {datos.lista_unidades.length === 0 && (
-                    <tr>
-                      <td colSpan={5} style={{ padding: '10px 8px', textAlign: 'center' }}>No hay unidades disponibles</td>
                     </tr>
                   )}
                 </tbody>
@@ -256,7 +220,7 @@ export const Distributors: React.FC = () => {
               <span>200</span>
               <span>0</span>
             </div>
-            
+
             {/* Títulos de Ejes */}
             <div style={{ position: 'absolute', left: '-35px', top: '50%', transform: 'translateY(-50%) rotate(-90deg)', fontSize: '12px', color: '#666' }}>
               Número de Unidades en Alerta Roja
@@ -271,21 +235,21 @@ export const Distributors: React.FC = () => {
               // Ajustamos maxVal para que las barras se vean bien (ej. 1200 si el max es 1100)
               const chartMax = Math.ceil(maxVal / 200) * 200;
               const alturaPct = (d.unidades_alerta_roja / chartMax) * 100;
-              
+
               return (
                 <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
-                  <div 
-                    style={{ 
-                      width: '80%', 
-                      height: `${alturaPct}%`, 
+                  <div
+                    style={{
+                      width: '80%',
+                      height: `${alturaPct}%`,
                       backgroundColor: obtenerColorRojo(i, datos.top_distribuidores.length),
                       border: '1px solid rgba(0,0,0,0.1)'
                     }}
                     title={`${d.distribuidor}: ${d.unidades_alerta_roja}`}
                   ></div>
-                  <span style={{ 
-                    fontSize: '10px', 
-                    color: '#333', 
+                  <span style={{
+                    fontSize: '10px',
+                    color: '#333',
                     marginTop: '5px',
                     transform: 'rotate(45deg)',
                     transformOrigin: 'top left',
@@ -299,6 +263,56 @@ export const Distributors: React.FC = () => {
             })}
           </div>
         </div>
+      </div>
+
+      <div className="card map-card" style={{ marginTop: '24px' }}>
+        <h3 className="card-title">CONCENTRACIÓN GEOGRÁFICA DE UNIDADES CRÍTICAS Y ALTAS</h3>
+        <div style={{ height: '700px', width: '100%', borderRadius: '8px', overflow: 'hidden', marginTop: '16px' }}>
+          <iframe
+            src="http://127.0.0.1:5001/api/mapa"
+            style={{ width: '100%', height: '100%', border: 'none' }}
+            title="Mapa de Riesgo"
+          />
+        </div>
+        {datos.recomendaciones?.nota_ejecutiva && (
+          <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+            <p className="text-sm" style={{ color: '#374151', lineHeight: '1.5' }}>
+              {datos.recomendaciones.nota_ejecutiva}
+            </p>
+          </div>
+        )}
+
+        {datos.recomendaciones?.top_5_ciudades && datos.recomendaciones.top_5_ciudades.length > 0 && (
+          <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#FFFFFF', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+            <h4 className="font-bold mb-4" style={{ fontSize: '18px', color: '#111827', marginBottom: '16px' }}>Top 5 ciudades prioritarias para foco operativo</h4>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="data-table" style={{ width: '100%', textAlign: 'center', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#111827', color: '#FFFFFF' }}>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Ciudad</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Estado</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Unidades<br />prioritarias</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Críticas</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Altas</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Servicios en<br />oportunidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {datos.recomendaciones.top_5_ciudades.map((ciudad, idx) => (
+                    <tr key={idx}>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.Ciudad}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.Estado}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.unidades_prioritarias}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.criticas}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.altas}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.servicios_oportunidad}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
