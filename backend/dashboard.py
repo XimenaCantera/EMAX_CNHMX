@@ -1,220 +1,345 @@
 import os
 import pandas as pd
 import numpy as np
+import time
+import threading
 
-def obtener_data(clean_files_dir):
-    ruta_mantenimientos = f"{clean_files_dir}/new_mantenimientos.xlsx"
-    ruta_unidades = f"{clean_files_dir}/new_unidades.xlsx"
-    ruta_population = f"{clean_files_dir}/new_population.xlsx"
+_CACHE_DASHBOARD = None
+_CACHE_LOCK = threading.Lock()
+
+def limpiar_cache():
+    global _CACHE_DASHBOARD
+    with _CACHE_LOCK:
+        _CACHE_DASHBOARD = None
+
+def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=False):
+    tiempo_inicio = time.time()
+
+    ruta_mantenimientos = f"{directorio_archivos_limpios}/new_mantenimientos.xlsx"
+    ruta_unidades = f"{directorio_archivos_limpios}/new_unidades.xlsx"
         
-    # Cargar los datos 
+    # Cargar los datos
+    # Solo necesitamos estos dos archivos según las reglas
     mantenimientos = pd.read_excel(ruta_mantenimientos)
     unidades = pd.read_excel(ruta_unidades)
     
-    population = None
-    if os.path.exists(ruta_population):
-        population = pd.read_excel(ruta_population)
-            
-    #Columnas auxiliares de retraso y riesgo 
-    mantenimientos['retraso_servicio'] = mantenimientos['ACTUAL'] - mantenimientos['SERVICIO']
-    mapa_riesgo_estatus = {
-    'Cerrada': 0,
-    'PorVencer': 1,
-    'EnProceso': 1,
-    'Abierta': 1,
-    'Pendiente': 2,
-    'CerradaFuera': 2
-    }
-    mantenimientos['riesgo_retraso'] = mantenimientos['ESTATUS'].map(mapa_riesgo_estatus).fillna(0)
+    # Validar si las columnas existen, si no, crear con 0 para no tronar
+    if 'Pendientes' not in unidades.columns:
+        unidades['Pendientes'] = 0
+    if 'C.Fuera' not in unidades.columns:
+        unidades['C.Fuera'] = 0
+        
+    # Limpiar columnas: asegurar que sean números y rellenar vacíos con 0
+    unidades['Pendientes'] = pd.to_numeric(unidades['Pendientes'], errors='coerce').fillna(0)
+    unidades['C.Fuera'] = pd.to_numeric(unidades['C.Fuera'], errors='coerce').fillna(0)
     
-    #Reparar datos para identificar unidades con mayor riesgo
-    estatus = ['Pendiente', 'Cerrada', 'CerradaFuera']
-    datos_filtrados = mantenimientos[mantenimientos['ESTATUS'].isin(estatus)].copy()
-    datos_filtrados = datos_filtrados.dropna(subset=['ACTUAL', 'HRMTRO', 'SERVICIO', 'ESTATUS'])
-    
-    promedio_retraso = datos_filtrados['retraso_servicio'].mean()
-    datos_filtrados['SEVERITY_LEVEL'] = 'Bajo'
-    datos_filtrados.loc[
-    datos_filtrados['retraso_servicio'] > promedio_retraso,
-    'SEVERITY_LEVEL'
-] = 'Alto'
+    # Columna auxiliar base pedida
+    unidades['servicios_oportunidad'] = unidades['Pendientes'] + unidades['C.Fuera']
 
-    unidades_alerta = datos_filtrados[
-    (datos_filtrados['ESTATUS'].isin(['Pendiente', 'CerradaFuera'])) &
-    (datos_filtrados['riesgo_retraso'] == 2) &
-    (datos_filtrados['SEVERITY_LEVEL'] == 'Alto')
-]
+    # --- 1. Card: Servicios en oportunidad ---
+    # Estatus permitidos
+    estatus_oportunidad = ['Pendiente', 'PorVencer', 'EnProceso', 'Abierta']
+    if 'ESTATUS' in mantenimientos.columns:
+        oportunidades_activas = int(mantenimientos['ESTATUS'].isin(estatus_oportunidad).sum())
+    else:
+        oportunidades_activas = 0
 
-    unidades_criticas = int(unidades_alerta['ALIAS'].nunique())
+    # --- 2. Card: Próximos servicios 30 días ---
+    if 'ESTATUS' in mantenimientos.columns:
+        proximos_servicios = int((mantenimientos['ESTATUS'] == 'PorVencer').sum())
+    else:
+        proximos_servicios = 0
 
-    #Oportunidades activas y próximos servicios
-    oportunidades_activas = int(mantenimientos['ESTATUS'].isin([
-    'Pendiente', 'PorVencer', 'EnProceso', 'Abierta'
-    ]).sum())
-    proximos_servicios = int((mantenimientos['ESTATUS'] == 'PorVencer').sum())
+    # --- 3. Card: Unidades con alta carga de oportunidad ---
+    unidades_alta_carga = int((unidades['servicios_oportunidad'] > 7).sum())
 
-    #Valor potencial estimado en pesos mexicanos
+    # --- (Extra) Valor potencial global ---
     valor_potencial = oportunidades_activas * 3500
 
-    #Frecuencia de servicios por unidad
-    frecuencia_servicio_df = mantenimientos.groupby('ALIAS').size().reset_index(name='frecuencia_servicio')
+    # --- 4. Dona: Urgencia de servicios ---
+    # Leer específicamente del archivo en data/archivos_compañia/
+    import glob
+    directorio_base = os.path.dirname(directorio_archivos_limpios)
+    directorio_compania = os.path.join(directorio_base, 'archivos_compañia')
+    archivos_riesgo = glob.glob(os.path.join(directorio_compania, 'tabla_riesg*.xlsx'))
+    
+    if archivos_riesgo:
+        ruta_riesgo = archivos_riesgo[0]
+        try:
+            df_riesgo = pd.read_excel(ruta_riesgo, sheet_name='Tabla_Riesgo_Final')
+            
+            # Contar según la columna solicitada
+            if 'Nivel de riesgo' in df_riesgo.columns:
+                conteos_riesgo = df_riesgo['Nivel de riesgo'].value_counts()
+                conteo_critico = int(conteos_riesgo.get('Crítico', 0))
+                conteo_alto = int(conteos_riesgo.get('Alto', 0))
+                conteo_medio = int(conteos_riesgo.get('Medio', 0))
+                conteo_bajo = int(conteos_riesgo.get('Bajo', 0))
+            else:
+                conteo_critico, conteo_alto, conteo_medio, conteo_bajo = 0, 0, 0, 0
+                
+            total_unidades_grafica = conteo_critico + conteo_alto + conteo_medio + conteo_bajo
+            
+            # Imprimir logs solicitados
+            print("Dona riesgo basada en archivo de riesgo filtrado")
+            print(f"Total unidades: {total_unidades_grafica}")
+            print(f"Crítico: {conteo_critico}, Alto: {conteo_alto}, Medio: {conteo_medio}, Bajo: {conteo_bajo}")
+            
+        except Exception as e:
+            print(f"Error leyendo el archivo de riesgo: {e}")
+            conteo_critico, conteo_alto, conteo_medio, conteo_bajo = 0, 0, 0, 0
+            total_unidades_grafica = 0
+    else:
+        print("No se encontró el archivo de tabla de riesgo en archivos_compañia.")
+        conteo_critico, conteo_alto, conteo_medio, conteo_bajo = 0, 0, 0, 0
+        total_unidades_grafica = 0
+    if total_unidades_grafica > 0:
+        porcentaje_critico = round((conteo_critico / total_unidades_grafica) * 100, 1)
+        porcentaje_alto = round((conteo_alto / total_unidades_grafica) * 100, 1)
+        porcentaje_medio = round((conteo_medio / total_unidades_grafica) * 100, 1)
+        porcentaje_bajo = round((conteo_bajo / total_unidades_grafica) * 100, 1)
+    else:
+        porcentaje_critico, porcentaje_alto, porcentaje_medio, porcentaje_bajo = 0.0, 0.0, 0.0, 0.0
 
-    #Edad de los equipos
-    datos_unidades = unidades[['Alias', 'Fecha Alta']].copy()
-    datos_unidades = datos_unidades.rename(columns={'Alias': 'ALIAS'})
-
-    datos_unidades['Fecha Alta'] = pd.to_datetime(datos_unidades['Fecha Alta'], errors='coerce')
-    fecha_actual = pd.to_datetime('today')
-
-    datos_unidades['edad_equipo'] = (
-        (fecha_actual - datos_unidades['Fecha Alta']).dt.days / 365
-    ).round(1)
-
-    #Valor acumulado de aftermarket
-    columnas_valor = ['Cerrados', 'C.Fuera', 'Pendientes']
-
-    for columna in columnas_valor:
-        unidades[columna] = pd.to_numeric(unidades[columna], errors='coerce')
-
-    unidades['valor_aftermarket'] = unidades[columnas_valor].fillna(0).sum(axis=1)
-
-    valor_aftermarket_df = unidades[['Alias', 'valor_aftermarket']].copy()
-    valor_aftermarket_df = valor_aftermarket_df.rename(columns={'Alias': 'ALIAS'})
-
-    #Riesgo promedio por unidad
-    riesgo_df = mantenimientos.groupby('ALIAS')[['riesgo_retraso', 'retraso_servicio']].mean().reset_index()
-
-    # Agregar distribuidor por unidad
-    distribuidor_df = mantenimientos.groupby('ALIAS')['DISTRIBUIDOR'].first().reset_index()
-
-    # Unir tablas para crear base de monetización
-    datos_monetizacion = pd.merge(frecuencia_servicio_df, valor_aftermarket_df, on='ALIAS', how='left')
-    datos_monetizacion = pd.merge(datos_monetizacion, datos_unidades[['ALIAS', 'edad_equipo']], on='ALIAS', how='left')
-    datos_monetizacion = pd.merge(datos_monetizacion, riesgo_df, on='ALIAS', how='left')
-    datos_monetizacion = pd.merge(datos_monetizacion, distribuidor_df, on='ALIAS', how='left')
-
-    # Rellenar valores vacíos
-    datos_monetizacion['riesgo_retraso'] = datos_monetizacion['riesgo_retraso'].fillna(0)
-    datos_monetizacion['valor_aftermarket'] = datos_monetizacion['valor_aftermarket'].fillna(0)
-
-    # Calcular score simple de oportunidad
-    datos_monetizacion['score_oportunidad'] = (
-        datos_monetizacion['riesgo_retraso'] * datos_monetizacion['valor_aftermarket']
-    )
-
-    # Filtrar para excluir servicios vencidos (retraso_servicio > 0)
-    datos_monetizacion_validos = datos_monetizacion[datos_monetizacion['retraso_servicio'] <= 0]
-
-    # Ordenar y obtener top
-    top_units = datos_monetizacion_validos.sort_values(
-        by='score_oportunidad',
-        ascending=False
-    ).head(5)
-
-    # Calcular el TOP 5 de unidades con mayor oportunidad
+    # --- 5. Tabla: Top servicios con mayor oportunidad ---
+    unidades['potencial'] = unidades['servicios_oportunidad'] * 3500
+    mejores_unidades = unidades.sort_values(by='potencial', ascending=False).head(5)
+    
     top_oportunidades = []
-
-    for i, fila in top_units.iterrows():
-
-        if fila['riesgo_retraso'] == 2:
+    for _, fila in mejores_unidades.iterrows():
+        # Calcular categoría de urgencia
+        so = fila['servicios_oportunidad']
+        if so >= 20:
+            estado = 'Crítico'
+        elif so >= 10:
             estado = 'Alto'
-        elif fila['riesgo_retraso'] == 1:
+        elif so >= 5:
             estado = 'Medio'
         else:
             estado = 'Bajo'
-
-        if fila['retraso_servicio'] > 0:
-            proximo_servicio = 'Vencido'
+            
+        # Formatear el nombre de la unidad
+        alias_unidad = str(fila.get('Alias', 'Sin Alias'))
+        distribuidor = str(fila.get('Distribuidor', 'Sin Distribuidor'))
+        
+        # Como el Alias ya trae el nombre del distribuidor integrado en muchos casos (ej. "ENAGRI - NH10100M"),
+        # separamos por " - " y tomamos la última parte para que quede solo el número o clave.
+        if ' - ' in alias_unidad:
+            unidad_mostrar = alias_unidad.split(' - ')[-1].strip()
         else:
-            proximo_servicio = 'Por vencer'
-
+            unidad_mostrar = alias_unidad
+            
         top_oportunidades.append({
-            'unidad': fila['ALIAS'],
-            'distribuidor': fila['DISTRIBUIDOR'],
+            'unidad': unidad_mostrar,
+            'distribuidor': distribuidor if pd.notna(fila.get('Distribuidor')) else '',
             'estado': estado,
-            'proximo_servicio': proximo_servicio,
-            'potencial': fila['valor_aftermarket']
+            'proximo_servicio': 'Oportunidad activa', # Texto estático solicitado
+            'potencial': fila['potencial'],
+            'servicios_cnt': int(so)
         })
+
+    # --- Validaciones por consola ---
+    print("\n=== RESUMEN CÁLCULOS DASHBOARD ===")
+    print(f"Total servicios en oportunidad: {oportunidades_activas}")
+    print(f"Total próximos servicios: {proximos_servicios}")
+    print(f"Total unidades con alta carga de oportunidad: {unidades_alta_carga}")
+    print(f"Conteo urgencia -> Crítico: {conteo_critico}, Alto: {conteo_alto}, Medio: {conteo_medio}, Bajo: {conteo_bajo}")
+    print("Top 5 unidades por potencial:")
+    for t in top_oportunidades:
+        print(f" - {t['unidad']}: {t['servicios_cnt']} servicios -> ${t['potencial']:,.2f}")
+
+    # --- 6. Mapa Interactivo y Nota Ejecutiva ---
+    import plotly.express as px
+    
+    html_mapa = ""
+    nota_ejecutiva = "No hay suficientes datos para generar la recomendación de foco."
+    
+    if archivos_riesgo and 'df_riesgo' in locals():
+        # Columnas seguras (con .get para evitar errores si falta alguna)
+        cols_riesgo = ["Alias", "Nivel de riesgo", "Score riesgo", "Pendientes", "Cerrada fuera", "Backlog", "Atraso máx hrs", "Horómetro"]
+        cols_riesgo_existentes = [c for c in cols_riesgo if c in df_riesgo.columns]
+        df_riesgo_base = df_riesgo[cols_riesgo_existentes].copy()
         
-    #Porcentajes para la gráfica de urgencia
-    total_unidades = len(datos_monetizacion)
-
-    if total_unidades > 0:
-        promedio_retraso = datos_monetizacion['retraso_servicio'].mean()
-
-        critico_cnt = int((
-        (datos_monetizacion['riesgo_retraso'] == 2) &
-        (datos_monetizacion['retraso_servicio'] > promedio_retraso)
-        ).sum())
-
-        alto_cnt = int((
-        (datos_monetizacion['riesgo_retraso'] == 2) &
-        (datos_monetizacion['retraso_servicio'] <= promedio_retraso)
-        ).sum())
-
-        medio_cnt = int((datos_monetizacion['riesgo_retraso'] == 1).sum())
-        bajo_cnt = int((datos_monetizacion['riesgo_retraso'] == 0).sum())
-
-        critico_pct = round((critico_cnt / total_unidades) * 100, 1)
-        alto_pct = round((alto_cnt / total_unidades) * 100, 1)
-        medio_pct = round((medio_cnt / total_unidades) * 100, 1)
-        bajo_pct = round((bajo_cnt / total_unidades) * 100, 1)
-    else:
-        critico_pct = 0.0
-        alto_pct = 0.0
-        medio_pct = 0.0
-        bajo_pct = 0.0
+        cols_ub = ["Alias", "Latitud", "Longitud", "Ciudad", "Estado", "Distribuidor"]
+        cols_ub_existentes = [c for c in cols_ub if c in unidades.columns]
+        df_ubicacion = unidades[cols_ub_existentes].copy()
         
-    #Distribuidor con más unidades en alerta
-    if len(unidades_alerta) > 0 and 'DISTRIBUIDOR' in unidades_alerta.columns:
-        conteo_distribuidores = unidades_alerta['DISTRIBUIDOR'].value_counts()
+        df_mapa = df_riesgo_base.merge(df_ubicacion, on="Alias", how="left")
+        
+        if "Latitud" in df_mapa.columns and "Longitud" in df_mapa.columns:
+            df_mapa["Latitud"] = pd.to_numeric(df_mapa["Latitud"], errors="coerce")
+            df_mapa["Longitud"] = pd.to_numeric(df_mapa["Longitud"], errors="coerce")
+            df_mapa = df_mapa.dropna(subset=["Latitud", "Longitud"])
+            df_mapa = df_mapa[(df_mapa["Latitud"] != 0) & (df_mapa["Longitud"] != 0)]
+            
+            print(f"Unidades de riesgo con ubicación válida: {len(df_mapa)}")
+            
+            # Agrupación requerida
+            mapa_agrupado = df_mapa.groupby(
+                ["Estado", "Ciudad", "Distribuidor", "Latitud", "Longitud", "Nivel de riesgo"],
+                dropna=False
+            ).agg(
+                unidades=("Alias", "count"),
+                pendientes=("Pendientes", "sum") if "Pendientes" in df_mapa.columns else ("Alias", lambda x: 0),
+                cerrada_fuera=("Cerrada fuera", "sum") if "Cerrada fuera" in df_mapa.columns else ("Alias", lambda x: 0),
+                backlog=("Backlog", "sum") if "Backlog" in df_mapa.columns else ("Alias", lambda x: 0),
+                score_promedio=("Score riesgo", "mean") if "Score riesgo" in df_mapa.columns else ("Alias", lambda x: 0),
+                atraso_maximo=("Atraso máx hrs", "max") if "Atraso máx hrs" in df_mapa.columns else ("Alias", lambda x: 0)
+            ).reset_index()
+            
+            mapa_agrupado["servicios_oportunidad"] = mapa_agrupado["pendientes"] + mapa_agrupado["cerrada_fuera"]
+            
+            # Filtrar críticos y altos
+            niveles_prioritarios = ["Crítico", "Alto"]
+            mapa_prioritario = mapa_agrupado[mapa_agrupado["Nivel de riesgo"].astype(str).str.strip().isin(niveles_prioritarios)].copy()
+            
+            print(f"Total de unidades Crítico + Alto graficadas: {mapa_prioritario['unidades'].sum()}")
+            
+            # Crear figura
+            colores_riesgo = {"Crítico": "#20235C", "Alto": "#B45309"}
+            fig = px.scatter_mapbox(
+                mapa_prioritario,
+                lat="Latitud",
+                lon="Longitud",
+                size="unidades",
+                color="Nivel de riesgo",
+                color_discrete_map=colores_riesgo,
+                category_orders={"Nivel de riesgo": ["Crítico", "Alto"]},
+                hover_name="Ciudad",
+                hover_data={
+                    "Estado": True, "Distribuidor": True, "Nivel de riesgo": True,
+                    "unidades": True, "pendientes": True, "cerrada_fuera": True,
+                    "servicios_oportunidad": True, "backlog": True,
+                    "score_promedio": ":.1f", "atraso_maximo": True,
+                    "Latitud": False, "Longitud": False
+                },
+                zoom=4.7,
+                center={"lat": 23.6345, "lon": -102.5528},
+                mapbox_style="carto-positron",
+                title="Concentración geográfica de unidades críticas y altas",
+                height=700
+            )
+            fig.update_traces(marker=dict(opacity=0.9))
+            fig.update_layout(
+                paper_bgcolor="#F9FAFB", plot_bgcolor="#FFFFFF",
+                font=dict(family="Arial", size=14, color="#111827"),
+                title=dict(font=dict(size=22, color="#111827"), x=0.02),
+                legend=dict(
+                    title="Nivel de riesgo", bgcolor="#FFFFFF", bordercolor="#E5E7EB",
+                    borderwidth=1, font=dict(color="#111827")
+                ),
+                margin={"r":20, "t":60, "l":20, "b":20}
+            )
+            
+            html_mapa = fig.to_html(full_html=False, include_plotlyjs='cdn')
+            
+        # Nota Ejecutiva
+        if "Estado" in df_riesgo.columns and "Nivel de riesgo" in df_riesgo.columns:
+            df_prioritario = df_riesgo[df_riesgo["Nivel de riesgo"].astype(str).str.strip().isin(niveles_prioritarios)].copy()
+            top_estados = df_prioritario.groupby("Estado").agg(
+                unidades_prioritarias=("Nivel de riesgo", "size"),
+                criticas=("Nivel de riesgo", lambda x: (x == "Crítico").sum()),
+                altas=("Nivel de riesgo", lambda x: (x == "Alto").sum()),
+                pendientes=("Pendientes", "sum") if "Pendientes" in df_prioritario.columns else ("Nivel de riesgo", lambda x: 0),
+                cerrada_fuera=("Cerrada fuera", "sum") if "Cerrada fuera" in df_prioritario.columns else ("Nivel de riesgo", lambda x: 0)
+            ).reset_index()
+            
+            top_estados["servicios_oportunidad"] = top_estados["pendientes"] + top_estados["cerrada_fuera"]
+            top_3 = top_estados.sort_values(by=["unidades_prioritarias", "criticas", "servicios_oportunidad"], ascending=False).head(3)
+            
+            lista_estados = top_3["Estado"].tolist()
+            if len(lista_estados) > 0:
+                print(f"Top estados recomendados: {lista_estados}")
+                if len(lista_estados) == 3:
+                    texto_estados = f"{lista_estados[0]}, {lista_estados[1]} y {lista_estados[2]}"
+                else:
+                    texto_estados = ", ".join(lista_estados)
+                
+                nota_ejecutiva = f"Foco recomendado: {texto_estados}. Estos estados concentran la mayor carga de unidades críticas y altas, por lo que representan la mejor zona inicial para activar seguimiento técnico, contacto con distribuidores y recuperación de servicios."
+
+        # Calcular top 5 ciudades desde df_mapa si existe (porque tiene la columna Ciudad)
+        top_5_ciudades = []
+        if 'df_mapa' in locals() and "Ciudad" in df_mapa.columns and "Estado" in df_mapa.columns:
+            df_mapa_prioritario = df_mapa[df_mapa["Nivel de riesgo"].astype(str).str.strip().isin(niveles_prioritarios)].copy()
+            
+            # Filtramos ciudades desconocidas
+            df_mapa_prioritario = df_mapa_prioritario[
+                df_mapa_prioritario["Ciudad"].notna() &
+                (df_mapa_prioritario["Ciudad"].astype(str).str.strip().str.lower() != "desconocido")
+            ]
+            
+            if not df_mapa_prioritario.empty:
+                top_ciudades = df_mapa_prioritario.groupby(["Ciudad", "Estado"]).agg(
+                    unidades_prioritarias=("Alias", "count"),
+                    criticas=("Nivel de riesgo", lambda x: (x == "Crítico").sum()),
+                    altas=("Nivel de riesgo", lambda x: (x == "Alto").sum()),
+                    pendientes=("Pendientes", "sum") if "Pendientes" in df_mapa_prioritario.columns else ("Alias", lambda x: 0),
+                    cerrada_fuera=("Cerrada fuera", "sum") if "Cerrada fuera" in df_mapa_prioritario.columns else ("Alias", lambda x: 0)
+                ).reset_index()
+                
+                top_ciudades["servicios_oportunidad"] = top_ciudades["pendientes"] + top_ciudades["cerrada_fuera"]
+                top_ciudades = top_ciudades.sort_values(
+                    by=["unidades_prioritarias", "criticas", "servicios_oportunidad"], 
+                    ascending=False
+                ).head(5)
+                
+                # Convertir a dict
+                for _, row in top_ciudades.iterrows():
+                    top_5_ciudades.append({
+                        "Ciudad": str(row["Ciudad"]),
+                        "Estado": str(row["Estado"]),
+                        "unidades_prioritarias": int(row["unidades_prioritarias"]),
+                        "criticas": int(row["criticas"]),
+                        "altas": int(row["altas"]),
+                        "servicios_oportunidad": int(row["servicios_oportunidad"])
+                    })
+
+    print("==================================\n")
     
-        if len(conteo_distribuidores) > 0:
-            distribuidor_principal = conteo_distribuidores.index[0]
-            unidades_distribuidor = int(conteo_distribuidores.iloc[0])
-        else:
-            distribuidor_principal = 'Sin dato'
-            unidades_distribuidor = 0
-    else:
-        distribuidor_principal = 'Sin dato'
-        unidades_distribuidor = 0
+    global _CACHE_MAPA
+    _CACHE_MAPA = html_mapa
 
-    rec_dist_desc = (
-        f"{unidades_distribuidor} unidades en {distribuidor_principal} "
-        "presentan alerta por retraso en servicio preventivo."
-    )
+    # Textos de recomendaciones
+    rec_dist_desc = f"Se detectaron unidades con alta carga de servicios que requieren atención prioritaria."
+    rec_pendientes_desc = f"{oportunidades_activas} servicios en oportunidad requieren seguimiento por parte de los distribuidores."
+    rec_prices_desc = f"Existen {oportunidades_activas} oportunidades activas de seguimiento aftermarket."
 
-    # Unidades pendientes de atención
-    pendientes_count = int((mantenimientos['ESTATUS'] == 'Pendiente').sum())
-
-    rec_kits_desc = (
-        f"{pendientes_count} servicios pendientes requieren seguimiento por parte de los distribuidores."
-    )
-
-    # Oportunidades activas
-    rec_prices_desc = (
-        f"Se detectaron {oportunidades_activas} oportunidades activas de seguimiento aftermarket."
-    )
-    
-    rec_pendientes_desc = (
-        f"{pendientes_count} servicios pendientes requieren seguimiento por parte de los distribuidores."
-    )
-    
-    return {
+    _CACHE_DASHBOARD = {
         'oportunidades_activas': oportunidades_activas,
-        'unidades_criticas': unidades_criticas,
+        'unidades_alta_carga': unidades_alta_carga,
         'valor_potencial': valor_potencial,
         'proximos_servicios': proximos_servicios,
         'top_oportunidades': top_oportunidades,
         'donut_chart_data': {
-            'critico_pct': critico_pct,
-            'alto_pct': alto_pct,
-            'medio_pct': medio_pct,
-            'bajo_pct': bajo_pct
+            'critico_pct': porcentaje_critico,
+            'critico_cnt': conteo_critico,
+            'alto_pct': porcentaje_alto,
+            'alto_cnt': conteo_alto,
+            'medio_pct': porcentaje_medio,
+            'medio_cnt': conteo_medio,
+            'bajo_pct': porcentaje_bajo,
+            'bajo_cnt': conteo_bajo
         },
         'recomendaciones': {
             'distribuidores_desc': rec_dist_desc,
             'pendientes_desc': rec_pendientes_desc,
-            'aftermarket_desc': rec_prices_desc
+            'aftermarket_desc': rec_prices_desc,
+            'nota_ejecutiva': nota_ejecutiva,
+            'top_5_ciudades': top_5_ciudades
         }
     }
+    
+    tiempo_fin = time.time()
+    print(f"[LOG] Tiempo de procesamiento interno: {tiempo_fin - tiempo_inicio:.2f} segundos")
+    return _CACHE_DASHBOARD
+
+def obtener_data(directorio_archivos_limpios, forzar_actualizacion=False):
+    global _CACHE_DASHBOARD
+    
+    with _CACHE_LOCK:
+        if not forzar_actualizacion and _CACHE_DASHBOARD is not None:
+            return _CACHE_DASHBOARD
+            
+        resultado = obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion)
+        _CACHE_DASHBOARD = resultado
+        return resultado
