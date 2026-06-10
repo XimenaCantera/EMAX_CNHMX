@@ -129,12 +129,13 @@
   font-size: 0.75rem;
   color: var(--color-text-muted);
   font-weight: 600;
-  padding-bottom: var(--space-md);
+  padding: var(--space-md) var(--space-md) var(--space-md) 0;
   border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
 }
 
 .data-table td {
-  padding: var(--space-md) 0;
+  padding: var(--space-md) var(--space-md) var(--space-md) 0;
   font-size: 0.875rem;
   border-bottom: 1px solid var(--color-neutral);
 }
@@ -319,4 +320,17 @@
   height: 12px;
   border-radius: var(--radius-sm);
   display: inline-block;
+}
+
+.donut-download-btn-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-md);
+}
+
+.donut-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
 }
