@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, FileText, Tractor } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Tractor } from 'lucide-react';
 import './Distributors.css';
 
 interface TopDistribuidor {
@@ -30,6 +30,8 @@ interface DatosDistribuidores {
   total_distribuidores: number;
   pendientes_por_atender: number;
   unidades_alerta_roja: number;
+  unidades_agricultura: number;
+  unidades_otros: number;
   top_distribuidores: TopDistribuidor[];
   lista_unidades: UnidadLista[];
   recomendaciones?: {
@@ -39,15 +41,16 @@ interface DatosDistribuidores {
 }
 
 const calcularProximoServicio = (horas: number): string => {
-  if (horas === undefined || horas === null || isNaN(horas) || horas === 0) return "No disponible";
-
-  const intervalos = [300, 600, 900, 1200, 1500, 1800, 2100, 2400];
-  for (let intervalo of intervalos) {
-    if (horas < intervalo) {
-      return `${intervalo} hrs`;
-    }
+  const intervalo = 300;
+  if (horas < intervalo) {
+    return `${intervalo} Hrs`;
   }
-  return "No disponible";
+  const factor = Math.ceil(horas / intervalo);
+  const proximo = factor * intervalo;
+  if (proximo - horas <= 50) {
+    return `${proximo} Hrs (Por vencer)`;
+  }
+  return `${proximo} Hrs`;
 };
 
 const obtenerColorRiesgo = (riesgo: string): string => {
@@ -60,10 +63,10 @@ const obtenerColorRiesgo = (riesgo: string): string => {
 
 const obtenerClaseRiesgoBg = (riesgo: string): string => {
   const r = riesgo.toLowerCase();
-  if (r === 'high' || r === 'crítico' || r === 'alto') return 'bg-critical text-white';
-  if (r === 'medium' || r === 'medio') return 'bg-warning text-white';
-  if (r === 'low' || r === 'bajo') return 'bg-success text-white';
-  return 'bg-neutral text-main';
+  if (r === 'high') return 'bg-critical text-white';
+  if (r === 'medium') return 'bg-warning text-white';
+  if (r === 'low') return 'bg-neutral text-black';
+  return 'bg-neutral text-black';
 };
 
 const obtenerClaseEstatus = (estatus: string): string => {
@@ -90,7 +93,7 @@ export const Distributors: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const cargarDatosDistribuidores = async () => {
+    const cargarDatos = async () => {
       try {
         const respuesta = await fetch('http://localhost:5001/api/distribuidores');
         const json = await respuesta.json();
@@ -98,28 +101,24 @@ export const Distributors: React.FC = () => {
         if (json.success && json.data) {
           setDatos(json.data);
         } else {
-          setError(json.error || "Error al cargar datos");
+          setError(json.error || 'Error al cargar los datos');
         }
       } catch (err) {
-        setError("Error de conexión con el backend");
-        console.error(err);
+        console.error("Error cargando distribuidores:", err);
+        setError('Error de conexión al servidor');
       } finally {
         setCargando(false);
       }
     };
 
-    cargarDatosDistribuidores();
+    cargarDatos();
   }, []);
 
   if (cargando) {
     return <div className="distributors-page p-4">Cargando datos de distribuidores...</div>;
   }
 
-  if (error) {
-    return <div className="distributors-page p-4 text-critical">Error: {error}</div>;
-  }
-
-  if (!datos) {
+  if (error || !datos) {
     return <div className="distributors-page p-4">No hay datos disponibles</div>;
   }
 
@@ -129,42 +128,50 @@ export const Distributors: React.FC = () => {
         <h1>Distribuidores</h1>
       </div>
 
-      <div className="metrics-grid dist-metrics" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '20px' }}>
-        <div className="card kpi-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid black', color: 'black' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <Tractor size={40} color="black" />
-            <div>
-              <span className="kpi-title" style={{ fontSize: '14px', color: 'black', fontWeight: 'bold' }}>Distribuidores</span>
-              <div className="kpi-value-row" style={{ display: 'flex', alignItems: 'baseline' }}>
-                <span className="kpi-value" style={{ fontSize: '28px', fontWeight: 'bold', color: 'black' }}>{datos.total_distribuidores}</span>
-                <span style={{ fontSize: '12px', marginLeft: '8px', color: 'black' }}>Registrados</span>
-              </div>
-            </div>
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="card kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">DISTRIBUIDORES REGISTRADOS</span>
+            <Users size={18} className="text-muted" />
+          </div>
+          <div className="kpi-value">
+            {datos.total_distribuidores}
           </div>
         </div>
 
-        <div className="card kpi-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid black', color: 'black' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <FileText size={40} color="black" />
-            <div>
-              <span className="kpi-title" style={{ fontSize: '14px', color: 'black', fontWeight: 'bold' }}>Pendientes por Atender</span>
-              <div className="kpi-value-row" style={{ display: 'flex', alignItems: 'baseline' }}>
-                <span className="kpi-value" style={{ fontSize: '28px', fontWeight: 'bold', color: 'black' }}>{datos.pendientes_por_atender}</span>
-                <span style={{ fontSize: '12px', marginLeft: '8px', color: 'black' }}>Estatus Pendiente</span>
-              </div>
-            </div>
+        <div className="card kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">PENDIENTES POR ATENDER</span>
+            <FileText size={18} className="text-muted" />
+          </div>
+          <div className="kpi-value">
+            {datos.pendientes_por_atender}
           </div>
         </div>
 
-        <div className="card kpi-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid black', color: 'black' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <AlertTriangle size={40} color="black" />
-            <div>
-              <span className="kpi-title" style={{ fontSize: '14px', color: 'black', fontWeight: 'bold' }}>Unidades en Alerta Roja</span>
-              <div className="kpi-value-row" style={{ display: 'flex', alignItems: 'baseline' }}>
-                <span className="kpi-value" style={{ fontSize: '28px', fontWeight: 'bold', color: 'black' }}>{datos.unidades_alerta_roja}</span>
-                <span style={{ fontSize: '12px', marginLeft: '8px', color: 'black' }}>Requieren acción</span>
-              </div>
+        <div className="card kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">UNIDADES EN ALERTA ROJA</span>
+            <AlertTriangle size={18} className="text-warning" />
+          </div>
+          <div className="kpi-value text-warning">
+            {datos.unidades_alerta_roja}
+          </div>
+        </div>
+
+        <div className="card kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">TIPO DE UNIDADES</span>
+            <Tractor size={18} className="text-muted" />
+          </div>
+          <div style={{ display: 'flex', gap: '20px', marginTop: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span className="kpi-value" style={{ color: '#2E7D32' }}>{datos.unidades_agricultura}</span>
+              <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: '500', marginTop: '-4px' }}>Agricultura</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span className="kpi-value" style={{ color: '#9CA3AF' }}>{datos.unidades_otros}</span>
+              <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: '500', marginTop: '-4px' }}>Otros</span>
             </div>
           </div>
         </div>
@@ -209,9 +216,9 @@ export const Distributors: React.FC = () => {
         {/* Lado derecho: Gráfica */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h3 className="card-title" style={{ marginBottom: '20px', fontSize: '16px', fontWeight: 'bold' }}>Top 10 Distribuidores con Unidades en Alerta Roja</h3>
-          <div style={{ display: 'flex', gap: '5px', height: '400px', padding: '20px 40px 60px 40px', position: 'relative', borderLeft: '1px solid #eee', borderBottom: '1px solid #eee' }}>
+          <div style={{ display: 'flex', gap: '5px', height: '400px', padding: '20px 40px 60px 40px', position: 'relative', borderLeft: '1px solid #eee', borderBottom: '1px solid #eee', marginLeft: '70px' }}>
             {/* Eje Y simplificado */}
-            <div style={{ position: 'absolute', left: '-5px', top: 0, bottom: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '10px', color: '#666' }}>
+            <div style={{ position: 'absolute', left: '-45px', top: '20px', bottom: '60px', width: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '10px', color: '#666' }}>
               <span>1200</span>
               <span>1000</span>
               <span>800</span>
@@ -222,7 +229,7 @@ export const Distributors: React.FC = () => {
             </div>
 
             {/* Títulos de Ejes */}
-            <div style={{ position: 'absolute', left: '-35px', top: '50%', transform: 'translateY(-50%) rotate(-90deg)', fontSize: '12px', color: '#666' }}>
+            <div style={{ position: 'absolute', left: '-60px', top: '50%', transform: 'translate(-50%, -50%) rotate(-90deg)', fontSize: '12px', color: '#666', whiteSpace: 'nowrap' }}>
               Número de Unidades en Alerta Roja
             </div>
             <div style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', fontSize: '12px', color: '#666', fontWeight: 'bold' }}>

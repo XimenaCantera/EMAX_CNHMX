@@ -80,17 +80,10 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
                 
             total_unidades_grafica = conteo_critico + conteo_alto + conteo_medio + conteo_bajo
             
-            # Imprimir logs solicitados
-            print("Dona riesgo basada en archivo de riesgo filtrado")
-            print(f"Total unidades: {total_unidades_grafica}")
-            print(f"Crítico: {conteo_critico}, Alto: {conteo_alto}, Medio: {conteo_medio}, Bajo: {conteo_bajo}")
-            
         except Exception as e:
-            print(f"Error leyendo el archivo de riesgo: {e}")
             conteo_critico, conteo_alto, conteo_medio, conteo_bajo = 0, 0, 0, 0
             total_unidades_grafica = 0
     else:
-        print("No se encontró el archivo de tabla de riesgo en archivos_compañia.")
         conteo_critico, conteo_alto, conteo_medio, conteo_bajo = 0, 0, 0, 0
         total_unidades_grafica = 0
     if total_unidades_grafica > 0:
@@ -147,16 +140,6 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
     top_oportunidades = [formatear_oportunidad(fila) for _, fila in mejores_unidades.iterrows()]
     todas_oportunidades = [formatear_oportunidad(fila) for _, fila in todas_las_unidades.iterrows()]
 
-    # --- Validaciones por consola ---
-    print("\n=== RESUMEN CÁLCULOS DASHBOARD ===")
-    print(f"Total servicios en oportunidad: {oportunidades_activas}")
-    print(f"Total próximos servicios: {proximos_servicios}")
-    print(f"Total unidades con alta carga de oportunidad: {unidades_alta_carga}")
-    print(f"Conteo urgencia -> Crítico: {conteo_critico}, Alto: {conteo_alto}, Medio: {conteo_medio}, Bajo: {conteo_bajo}")
-    print("Top 5 unidades por potencial:")
-    for t in top_oportunidades:
-        print(f" - {t['unidad']}: {t['servicios_cnt']} servicios -> ${t['potencial']:,.2f}")
-
     # --- 6. Mapa Interactivo y Nota Ejecutiva ---
     import plotly.express as px
     
@@ -180,9 +163,7 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
             df_mapa["Longitud"] = pd.to_numeric(df_mapa["Longitud"], errors="coerce")
             df_mapa = df_mapa.dropna(subset=["Latitud", "Longitud"])
             df_mapa = df_mapa[(df_mapa["Latitud"] != 0) & (df_mapa["Longitud"] != 0)]
-            
-            print(f"Unidades de riesgo con ubicación válida: {len(df_mapa)}")
-            
+        
             # Agrupación requerida
             mapa_agrupado = df_mapa.groupby(
                 ["Estado", "Ciudad", "Distribuidor", "Latitud", "Longitud", "Nivel de riesgo"],
@@ -479,11 +460,26 @@ def obtener_datos_distribuidores(directorio_archivos_limpios):
         recs = data_dash.get('recomendaciones', {})
     except Exception:
         recs = {}
+        
+    unidades_agricultura = 0
+    unidades_otros = 0
+    col_marca = buscar_columna(mantenimientos, ['MARCA', 'Marca', 'BRAND'])
+    if col_alias_mant and col_marca:
+        agric_marcas = ['NEW HOLLAND AG', 'CASE IH']
+        # Filtramos por las marcas agricolas
+        df_agric = mantenimientos[mantenimientos[col_marca].isin(agric_marcas)]
+        unidades_agricultura = int(df_agric[col_alias_mant].nunique())
+        
+        # Filtramos por las marcas NO agricolas
+        df_otros = mantenimientos[~mantenimientos[col_marca].isin(agric_marcas)]
+        unidades_otros = int(df_otros[col_alias_mant].nunique())
 
     return {
         'total_distribuidores': total_distribuidores,
         'pendientes_por_atender': pendientes_por_atender,
         'unidades_alerta_roja': unidades_alerta_roja,
+        'unidades_agricultura': unidades_agricultura,
+        'unidades_otros': unidades_otros,
         'top_distribuidores': top_distribuidores,
         'lista_unidades': lista_unidades,
         'recomendaciones': recs
