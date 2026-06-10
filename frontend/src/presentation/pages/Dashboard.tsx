@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Activity,
   AlertTriangle,
-  DollarSign,
   Calendar,
   AlertCircle,
   TrendingUp,
@@ -130,14 +129,6 @@ export const Dashboard: React.FC = () => {
           <h1>Panel de Monetización CNH</h1>
           <p className="text-muted">Servicios con mayor oportunidad técnico y económica</p>
         </div>
-
-        <button
-          className="btn btn-outline text-xs flex items-center gap-xs"
-          onClick={cargarDatosDashboard}
-          title="Actualizar datos"
-        >
-          <RefreshCw size={14} /> Actualizar
-        </button>
       </div>
 
       <div className="kpi-grid">
@@ -161,15 +152,6 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="card kpi-card">
-          <div className="kpi-header">
-            <span className="kpi-title">VALOR POTENCIAL ESTIMADO</span>
-            <DollarSign size={18} className="text-muted" />
-          </div>
-          <div className="kpi-value">
-            {formatMoney(data.valor_potencial || 0)}
-          </div>
-        </div>
 
         <div className="card kpi-card">
           <div className="kpi-header">

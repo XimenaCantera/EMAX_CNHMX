@@ -102,8 +102,11 @@ def obtener_data(clean_files_dir):
         datos_monetizacion['riesgo_retraso'] * datos_monetizacion['valor_aftermarket']
     )
 
-    # Filtrar y ordenar
-    top_units = datos_monetizacion.sort_values(
+    # Filtrar para excluir servicios vencidos (retraso_servicio > 0)
+    datos_monetizacion_validos = datos_monetizacion[datos_monetizacion['retraso_servicio'] <= 0]
+
+    # Ordenar y obtener top
+    top_units = datos_monetizacion_validos.sort_values(
         by='score_oportunidad',
         ascending=False
     ).head(5)
