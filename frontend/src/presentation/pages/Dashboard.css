@@ -32,7 +32,6 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--color-text-muted);
-  letter-spacing: 0.05em;
 }
 
 .kpi-value {
@@ -64,7 +63,6 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--color-text-muted);
-  letter-spacing: 0.05em;
   margin-bottom: var(--space-lg);
 }
 
@@ -94,7 +92,6 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  position: relative;
 }
 
 .donut-inner {
@@ -110,7 +107,7 @@
 
 .donut-value {
   font-size: 1.5rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--color-primary);
   font-family: var(--font-heading);
 }
@@ -155,7 +152,6 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--color-text-muted);
-  letter-spacing: 0.05em;
   margin-bottom: var(--space-md);
 }
 
@@ -190,6 +186,7 @@
   margin-bottom: auto;
 }
 
+
 .btn-neutral {
   background-color: var(--color-neutral);
   color: var(--color-text-main);
@@ -199,7 +196,63 @@
   background-color: #E5E7EB;
 }
 
-/* Nuevos Estilos de Carga y Error */
+.kpi-value-small {
+  font-size: 1.5rem;
+}
+
+
+.contact-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+.contact-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-address p {
+  margin-bottom: 0.25rem;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.form-row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.form-row .form-input {
+  flex: 1;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text-main);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+
 .dashboard-loading {
   display: flex;
   flex-direction: column;
@@ -238,7 +291,7 @@
   margin-top: var(--space-md);
 }
 
-/* Leyenda del gráfico de dona */
+
 .donut-chart-container-flex {
   display: flex;
   justify-content: space-around;
@@ -266,35 +319,4 @@
   height: 12px;
   border-radius: var(--radius-sm);
   display: inline-block;
-}
-
-/* Animaciones */
-.fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
 }
