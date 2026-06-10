@@ -6,7 +6,8 @@ import {
   AlertCircle,
   TrendingUp,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Download
 } from 'lucide-react';
 import './Dashboard.css';
 //Usamos lucide-react para poner íconos visuales en las tarjetas del dashboard.
@@ -17,13 +18,7 @@ interface TopOportunidad {
   estado: string;
   proximo_servicio: string;
   potencial: number;
-}
-interface TopOportunidad {
-  unidad: string;
-  distribuidor: string;
-  estado: string;
-  proximo_Servicio: string;
-  potencial: number;
+  servicios_cnt: number;
 }
 
 interface DashboardData {
@@ -34,9 +29,13 @@ interface DashboardData {
   top_oportunidades: TopOportunidad[];
   donut_chart_data: {
     critico_pct: number;
+    critico_cnt?: number;
     alto_pct: number;
+    alto_cnt?: number;
     medio_pct: number;
+    medio_cnt?: number;
     bajo_pct: number;
+    bajo_cnt?: number;
   };
   recomendaciones: {
     distribuidores_desc: string;
@@ -179,25 +178,45 @@ export const Dashboard: React.FC = () => {
             <div className="donut-legend">
               <div className="legend-item">
                 <span className="legend-color" style={{ backgroundColor: '#A32428' }}></span>
-                <span className="legend-label">Crítico ({datosDona.critico_pct}%)</span>
+                <span className="legend-label">
+                  Crítico: {datosDona.critico_pct}% {datosDona.critico_cnt !== undefined ? `(${datosDona.critico_cnt.toLocaleString('es-MX')})` : ''}
+                </span>
               </div>
 
               <div className="legend-item">
                 <span className="legend-color" style={{ backgroundColor: '#B45309' }}></span>
-                <span className="legend-label">Alto ({datosDona.alto_pct}%)</span>
+                <span className="legend-label">
+                  Alto: {datosDona.alto_pct}% {datosDona.alto_cnt !== undefined ? `(${datosDona.alto_cnt.toLocaleString('es-MX')})` : ''}
+                </span>
               </div>
 
               <div className="legend-item">
                 <span className="legend-color" style={{ backgroundColor: '#20235C' }}></span>
-                <span className="legend-label">Medio ({datosDona.medio_pct}%)</span>
+                <span className="legend-label">
+                  Medio: {datosDona.medio_pct}% {datosDona.medio_cnt !== undefined ? `(${datosDona.medio_cnt.toLocaleString('es-MX')})` : ''}
+                </span>
               </div>
 
               <div className="legend-item">
                 <span className="legend-color" style={{ backgroundColor: '#E5E7EB' }}></span>
-                <span className="legend-label">Bajo ({datosDona.bajo_pct}%)</span>
+                <span className="legend-label">
+                  Bajo: {datosDona.bajo_pct}% {datosDona.bajo_cnt !== undefined ? `(${datosDona.bajo_cnt.toLocaleString('es-MX')})` : ''}
+                </span>
               </div>
             </div>
           </div>
+
+          <div className="donut-download-btn-wrapper">
+            <a
+              href="http://127.0.0.1:5001/api/download/tabla-riesgo"
+              download="tabla_riesgo_unidades.xlsx"
+              className="btn btn-outline donut-download-btn"
+            >
+              <Download size={15} />
+              Mostrar información detallada
+            </a>
+          </div>
+
         </div>
 
         <div className="card table-card">
@@ -215,6 +234,7 @@ export const Dashboard: React.FC = () => {
                 <th>DISTRIBUIDOR</th>
                 <th>ESTATUS</th>
                 <th>PRÓXIMO SERVICIO</th>
+                <th>CANT. SERVICIOS</th>
                 <th>POTENCIAL</th>
               </tr>
             </thead>
@@ -237,6 +257,7 @@ export const Dashboard: React.FC = () => {
                     </span>
                   </td>
                   <td>{op.proximo_servicio}</td>
+                  <td>{op.servicios_cnt} servicios</td>
                   <td className="font-bold">{formatMoney(op.potencial || 0)}</td>
                 </tr>
               ))}
