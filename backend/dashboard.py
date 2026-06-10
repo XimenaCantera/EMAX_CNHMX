@@ -101,42 +101,51 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
     else:
         porcentaje_critico, porcentaje_alto, porcentaje_medio, porcentaje_bajo = 0.0, 0.0, 0.0, 0.0
 
-    # --- 5. Tabla: Top servicios con mayor oportunidad ---
-    unidades['potencial'] = unidades['servicios_oportunidad'] * 3500
-    mejores_unidades = unidades.sort_values(by='potencial', ascending=False).head(5)
+    # --- 5. Top servicios con mayor oportunidad ---
+    # Filtrar por servicios con 300 a 600 horas por la mayor oportunidad de aftermarket
+    if 'Horometro' in unidades.columns:
+        horometro_num = pd.to_numeric(unidades['Horometro'], errors='coerce').fillna(0)
+        unidades_filtradas = unidades[(horometro_num >= 300) & (horometro_num <= 600)].copy()
+        unidades_filtradas['Horometro_num'] = pd.to_numeric(unidades_filtradas['Horometro'], errors='coerce').fillna(0)
+    else:
+        unidades_filtradas = unidades.copy()
+        unidades_filtradas['Horometro_num'] = 0
+        
+    unidades_filtradas['potencial'] = unidades_filtradas['servicios_oportunidad'] * 3500
     
-    top_oportunidades = []
-    for _, fila in mejores_unidades.iterrows():
-        # Calcular categoría de urgencia
+    todas_las_unidades = unidades_filtradas.sort_values(by='Horometro_num', ascending=True)
+    
+    # Tomar el top 5 por potencial y luego ordenar por horas ascendente (iniciando en 300)
+    mejores_unidades = unidades_filtradas.sort_values(by='potencial', ascending=False).head(5)
+    mejores_unidades = mejores_unidades.sort_values(by='Horometro_num', ascending=True)
+    
+    def formatear_oportunidad(fila):
         so = fila['servicios_oportunidad']
-        if so >= 20:
-            estado = 'Crítico'
-        elif so >= 10:
-            estado = 'Alto'
-        elif so >= 5:
-            estado = 'Medio'
-        else:
-            estado = 'Bajo'
+        if so >= 20: estado = 'Crítico'
+        elif so >= 10: estado = 'Alto'
+        elif so >= 5: estado = 'Medio'
+        else: estado = 'Bajo'
             
-        # Formatear el nombre de la unidad
         alias_unidad = str(fila.get('Alias', 'Sin Alias'))
         distribuidor = str(fila.get('Distribuidor', 'Sin Distribuidor'))
         
-        # Como el Alias ya trae el nombre del distribuidor integrado en muchos casos (ej. "ENAGRI - NH10100M"),
-        # separamos por " - " y tomamos la última parte para que quede solo el número o clave.
         if ' - ' in alias_unidad:
             unidad_mostrar = alias_unidad.split(' - ')[-1].strip()
         else:
             unidad_mostrar = alias_unidad
             
-        top_oportunidades.append({
+        return {
             'unidad': unidad_mostrar,
             'distribuidor': distribuidor if pd.notna(fila.get('Distribuidor')) else '',
             'estado': estado,
-            'proximo_servicio': 'Oportunidad activa', # Texto estático solicitado
+            'proximo_servicio': 'Oportunidad activa',
+            'horas_actuales': int(fila.get('Horometro', 0)) if pd.notna(fila.get('Horometro')) else 0,
             'potencial': fila['potencial'],
             'servicios_cnt': int(so)
-        })
+        }
+
+    top_oportunidades = [formatear_oportunidad(fila) for _, fila in mejores_unidades.iterrows()]
+    todas_oportunidades = [formatear_oportunidad(fila) for _, fila in todas_las_unidades.iterrows()]
 
     # --- Validaciones por consola ---
     print("\n=== RESUMEN CÁLCULOS DASHBOARD ===")
@@ -310,6 +319,7 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
         'valor_potencial': valor_potencial,
         'proximos_servicios': proximos_servicios,
         'top_oportunidades': top_oportunidades,
+        'todas_oportunidades': todas_oportunidades,
         'donut_chart_data': {
             'critico_pct': porcentaje_critico,
             'critico_cnt': conteo_critico,
