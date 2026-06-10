@@ -1,0 +1,134 @@
+.distributors-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.dist-metrics {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.border-critical {
+  border: 1px solid var(--color-secondary);
+}
+
+.text-main {
+  color: var(--color-text-main);
+}
+
+.main-content-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-lg);
+}
+
+.distributor-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.dist-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dist-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.dist-bar-bg {
+  height: 12px;
+  background-color: var(--color-neutral);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.dist-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-sm);
+}
+
+.bg-primary { background-color: var(--color-primary); }
+.bg-primary-light { background-color: var(--color-primary-light); }
+.bg-muted { background-color: #6B7280; }
+.bg-neutral-dark { background-color: #D1D5DB; }
+
+.cursor-pointer { cursor: pointer; }
+
+.priority-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.priority-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border: 1px solid var(--color-neutral);
+  border-radius: var(--radius-md);
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.priority-item:hover {
+  background-color: var(--color-neutral);
+}
+
+.priority-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.priority-content {
+  flex: 1;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.chart-legend {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.chart-placeholder {
+  width: 100%;
+  height: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mock-chart {
+  width: 100%;
+  height: 100%;
+}

@@ -1,0 +1,378 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Activity,
+  AlertTriangle,
+  Calendar,
+  AlertCircle,
+  TrendingUp,
+  Loader2,
+  RefreshCw,
+  Download
+} from 'lucide-react';
+import './Dashboard.css';
+//Usamos lucide-react para poner íconos visuales en las tarjetas del dashboard.
+
+interface TopOportunidad {
+  unidad: string;
+  distribuidor: string;
+  estado: string;
+  proximo_servicio: string;
+  potencial: number;
+  servicios_cnt: number;
+}
+
+interface TopCiudad {
+  Ciudad: string;
+  Estado: string;
+  unidades_prioritarias: number;
+  criticas: number;
+  altas: number;
+  servicios_oportunidad: number;
+}
+
+interface DashboardData {
+  oportunidades_activas: number;
+  unidades_alta_carga: number;
+  valor_potencial: number;
+  proximos_servicios: number;
+  top_oportunidades: TopOportunidad[];
+  donut_chart_data: {
+    critico_pct: number;
+    critico_cnt?: number;
+    alto_pct: number;
+    alto_cnt?: number;
+    medio_pct: number;
+    medio_cnt?: number;
+    bajo_pct: number;
+    bajo_cnt?: number;
+  };
+  recomendaciones: {
+    distribuidores_desc: string;
+    pendientes_desc: string;
+    aftermarket_desc: string;
+    nota_ejecutiva?: string;
+    top_5_ciudades?: TopCiudad[];
+  };
+}
+
+export const Dashboard: React.FC = () => {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const cargarDatosDashboard = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('http://127.0.0.1:5001/api/dashboard');
+      const json = await response.json();
+
+      if (response.ok && json.success) {
+        setData(json.data);
+      } else {
+        setError(json.error || 'Ocurrió un error al cargar el dashboard.');
+      }
+    } catch {
+      setError('No se pudo conectar con el servidor.');
+    }
+
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    cargarDatosDashboard();
+  }, []);
+
+  // Función para mostrar valores de dinero
+  const formatMoney = (valor: number) => {
+    return `$${valor.toLocaleString('es-MX')}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard-loading">
+        <Loader2 size={40} className="animate-spin text-primary" />
+        <p>Cargando panel de inicio y analizando bases de datos...</p>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="dashboard-error card">
+        <AlertTriangle size={48} className="text-secondary" />
+        <h2>Error al cargar el Dashboard</h2>
+        <p className="error-message">{error || 'No hay datos disponibles.'}</p>
+        <div className="error-actions">
+          <button className="btn btn-primary" onClick={cargarDatosDashboard}>
+            <RefreshCw size={16} /> Reintentar
+          </button>
+          <a href="/import" className="btn btn-outline">
+            Ir a Importar Datos
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Cálculos para el gráfico de dona
+  const datosDona = data.donut_chart_data;
+
+  const critico = datosDona.critico_pct;
+  const alto = critico + datosDona.alto_pct;
+  const medio = alto + datosDona.medio_pct;
+
+  const estiloDona = {
+    background: `conic-gradient(
+    #A32428 0% ${critico}%,
+    #B45309 ${critico}% ${alto}%,
+    #20235C ${alto}% ${medio}%,
+    #E5E7EB ${medio}% 100%
+  )`
+  };
+
+  return (
+    <div className="dashboard-page">
+      <div className="page-header flex justify-between items-center">
+        <div>
+          <h1>Panel de Monetización CNH</h1>
+          <p className="text-muted">Servicios con mayor oportunidad técnico y económica</p>
+        </div>
+      </div>
+
+      <div className="kpi-grid">
+        <div className="card kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">SERVICIOS EN OPORTUNIDAD</span>
+            <Activity size={18} className="text-muted" />
+          </div>
+
+          <div className="kpi-value">
+            {(data.oportunidades_activas || 0).toLocaleString('es-MX')}
+          </div>
+        </div>
+        <div className="card kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">UNIDADES CON ALTA CARGA DE OPORTUNIDAD</span>
+            <AlertTriangle size={18} className="text-warning" />
+          </div>
+          <div className="kpi-value text-warning">
+            {(data.unidades_alta_carga || 0).toLocaleString('es-MX')}
+          </div>
+        </div>
+
+
+        <div className="card kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">PRÓXIMOS SERVICIOS (30 DÍAS)</span>
+            <Calendar size={18} className="text-muted" />
+          </div>
+          <div className="kpi-value">
+            {(data.proximos_servicios || 0).toLocaleString('es-MX')}
+          </div>
+        </div>
+      </div>
+
+      <div className="main-grid">
+        <div className="card chart-card">
+          <h3 className="card-title">URGENCIA DE SERVICIOS</h3>
+
+          <div className="donut-chart-container-flex">
+            <div className="donut-chart" style={estiloDona}>
+              <div className="donut-inner">
+                <span className="donut-value">{datosDona.critico_pct}%</span>
+                <span className="donut-label">Crítico</span>
+              </div>
+            </div>
+
+            <div className="donut-legend">
+              <div className="legend-item">
+                <span className="legend-color" style={{ backgroundColor: '#A32428' }}></span>
+                <span className="legend-label">
+                  Crítico: {datosDona.critico_pct}% {datosDona.critico_cnt !== undefined ? `(${datosDona.critico_cnt.toLocaleString('es-MX')})` : ''}
+                </span>
+              </div>
+
+              <div className="legend-item">
+                <span className="legend-color" style={{ backgroundColor: '#B45309' }}></span>
+                <span className="legend-label">
+                  Alto: {datosDona.alto_pct}% {datosDona.alto_cnt !== undefined ? `(${datosDona.alto_cnt.toLocaleString('es-MX')})` : ''}
+                </span>
+              </div>
+
+              <div className="legend-item">
+                <span className="legend-color" style={{ backgroundColor: '#20235C' }}></span>
+                <span className="legend-label">
+                  Medio: {datosDona.medio_pct}% {datosDona.medio_cnt !== undefined ? `(${datosDona.medio_cnt.toLocaleString('es-MX')})` : ''}
+                </span>
+              </div>
+
+              <div className="legend-item">
+                <span className="legend-color" style={{ backgroundColor: '#E5E7EB' }}></span>
+                <span className="legend-label">
+                  Bajo: {datosDona.bajo_pct}% {datosDona.bajo_cnt !== undefined ? `(${datosDona.bajo_cnt.toLocaleString('es-MX')})` : ''}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="donut-download-btn-wrapper">
+            <a
+              href="http://127.0.0.1:5001/api/download/tabla-riesgo"
+              download="tabla_riesgo_unidades.xlsx"
+              className="btn btn-outline donut-download-btn"
+            >
+              <Download size={15} />
+              Mostrar información detallada
+            </a>
+          </div>
+
+        </div>
+
+        <div className="card table-card">
+          <div className="card-header-flex">
+            <h3 className="card-title">TOP SERVICIOS CON MAYOR OPORTUNIDAD</h3>
+            <a href="/monetization" className="btn btn-outline text-xs">
+              Ver panel detallado
+            </a>
+          </div>
+
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>ALIAS / SERIE</th>
+                <th>DISTRIBUIDOR</th>
+                <th>ESTATUS</th>
+                <th>PRÓXIMO SERVICIO</th>
+                <th>CANT. SERVICIOS</th>
+                <th>POTENCIAL</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {(data.top_oportunidades || []).map((op, idx) => (
+                <tr key={idx}>
+                  <td className="font-bold">{op.unidad}</td>
+                  <td>{op.distribuidor}</td>
+                  <td>
+                    <span
+                      className={`badge ${op.estado === 'Crítico'
+                        ? 'badge-critical'
+                        : op.estado === 'Alto'
+                          ? 'badge-warning'
+                          : 'badge-neutral'
+                        }`}
+                    >
+                      {op.estado}
+                    </span>
+                  </td>
+                  <td>{op.proximo_servicio}</td>
+                  <td>{op.servicios_cnt} servicios</td>
+                  <td className="font-bold">{formatMoney(op.potencial || 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card map-card" style={{ marginTop: '24px' }}>
+        <h3 className="card-title">CONCENTRACIÓN GEOGRÁFICA DE UNIDADES CRÍTICAS Y ALTAS</h3>
+        <div style={{ height: '700px', width: '100%', borderRadius: '8px', overflow: 'hidden', marginTop: '16px' }}>
+          <iframe 
+            src="http://127.0.0.1:5001/api/mapa" 
+            style={{ width: '100%', height: '100%', border: 'none' }}
+            title="Mapa de Riesgo"
+          />
+        </div>
+        {data.recomendaciones?.nota_ejecutiva && (
+          <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+            <p className="text-sm" style={{ color: '#374151', lineHeight: '1.5' }}>
+              {data.recomendaciones.nota_ejecutiva}
+            </p>
+          </div>
+        )}
+        
+        {data.recomendaciones?.top_5_ciudades && data.recomendaciones.top_5_ciudades.length > 0 && (
+          <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#FFFFFF', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+            <h4 className="font-bold mb-4" style={{ fontSize: '18px', color: '#111827', marginBottom: '16px' }}>Top 5 ciudades prioritarias para foco operativo</h4>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="data-table" style={{ width: '100%', textAlign: 'center', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#111827', color: '#FFFFFF' }}>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Ciudad</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Estado</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Unidades<br/>prioritarias</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Críticas</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Altas</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Servicios en<br/>oportunidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.recomendaciones.top_5_ciudades.map((ciudad, idx) => (
+                    <tr key={idx}>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.Ciudad}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.Estado}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.unidades_prioritarias}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.criticas}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.altas}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.servicios_oportunidad}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="actions-section">
+        <h3 className="section-title">ACCIONES RECOMENDADAS</h3>
+
+        <div className="actions-grid">
+          <div className="card action-card">
+            <div className="action-header">
+              <AlertCircle size={20} className="text-critical" />
+              <h4 className="font-bold">Contactar Distribuidores Clave</h4>
+            </div>
+            <p className="text-sm text-muted mb-auto">
+              {data.recomendaciones?.distribuidores_desc || ''}
+            </p>
+            <a href="/distributors" className="btn btn-primary w-full mt-lg text-center">
+              Iniciar campaña
+            </a>
+          </div>
+
+          <div className="card action-card">
+            <div className="action-header">
+              <Activity size={20} className="text-primary" />
+              <h4 className="font-bold">Revisar Servicios Pendientes</h4>
+            </div>
+
+            <p className="text-sm text-muted mb-auto">
+              {data.recomendaciones?.pendientes_desc || ''}
+            </p>
+
+            <button className="btn btn-neutral w-full mt-lg">
+              Revisar solicitudes
+            </button>
+          </div>
+
+          <div className="card action-card">
+            <div className="action-header">
+              <TrendingUp size={20} className="text-primary" />
+              <h4 className="font-bold">Revisar Precios Aftermarket</h4>
+            </div>
+            <p className="text-sm text-muted mb-auto">
+              {data.recomendaciones?.aftermarket_desc || ''}
+            </p>
+            <a href="/monetization" className="btn btn-neutral w-full mt-lg text-center">
+              Analizar datos
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
