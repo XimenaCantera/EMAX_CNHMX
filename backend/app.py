@@ -138,6 +138,23 @@ def obtener_dashboard():
             "error": str(e)
         }), 500
 
+@app.route('/api/distribuidores', methods=['GET'])
+def obtener_distribuidores_api():
+    try:
+        from dashboard import obtener_datos_distribuidores
+        datos = obtener_datos_distribuidores(CLEAN_FILES_DIR)
+        
+        return jsonify({
+            "success": True,
+            "data": datos
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 @app.route('/api/mapa', methods=['GET'])
 def obtener_mapa():
     try:

@@ -343,3 +343,132 @@ def obtener_data(directorio_archivos_limpios, forzar_actualizacion=False):
         resultado = obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion)
         _CACHE_DASHBOARD = resultado
         return resultado
+def obtener_datos_distribuidores(directorio_archivos_limpios):
+    ruta_mantenimientos = f"{directorio_archivos_limpios}/new_mantenimientos.xlsx"
+    
+    try:
+        mantenimientos = pd.read_excel(ruta_mantenimientos)
+    except Exception:
+        mantenimientos = pd.DataFrame()
+
+    def buscar_columna(df, opciones):
+        cols_lower = {c.lower().strip(): c for c in df.columns}
+        for opc in opciones:
+            if opc.lower().strip() in cols_lower:
+                return cols_lower[opc.lower().strip()]
+        return None
+
+    if mantenimientos.empty:
+        return {
+            'total_distribuidores': 0,
+            'pendientes_por_atender': 0,
+            'unidades_alerta_roja': 0,
+            'top_distribuidores': [],
+            'lista_unidades': []
+        }
+
+    col_dist_mant = buscar_columna(mantenimientos, ['DISTRIBUIDOR', 'Distribuidor'])
+    col_estatus_mant = buscar_columna(mantenimientos, ['ESTATUS', 'Estatus'])
+    col_alias_mant = buscar_columna(mantenimientos, ['ALIAS', 'Alias', 'Unidad'])
+    col_actual = buscar_columna(mantenimientos, ['ACTUAL', 'Actual'])
+    col_hrmtro = buscar_columna(mantenimientos, ['HRMTRO', 'Hrmtro'])
+    col_servicio = buscar_columna(mantenimientos, ['SERVICIO', 'Servicio'])
+
+    total_distribuidores = int(mantenimientos[col_dist_mant].nunique()) if col_dist_mant else 0
+    
+    if col_estatus_mant:
+        estatus_norm = mantenimientos[col_estatus_mant].astype(str).str.strip().str.title()
+        pendientes_por_atender = int(estatus_norm.isin(['Pendiente']).sum())
+    else:
+        pendientes_por_atender = 0
+
+    unidades_alerta_roja = 0
+    top_distribuidores = []
+    lista_unidades = []
+
+    if col_estatus_mant and col_alias_mant and col_dist_mant and col_actual and col_hrmtro and col_servicio:
+        status_risk_mapping = {'Cerrada': 0, 'PorVencer': 1, 'EnProceso': 1, 'Abierta': 1, 'Pendiente': 2, 'CerradaFuera': 2}
+        mantenimientos['ESTATUS_CLEAN'] = mantenimientos[col_estatus_mant].astype(str).str.strip()
+        mantenimientos['overdue_risk'] = mantenimientos['ESTATUS_CLEAN'].map(status_risk_mapping).fillna(0)
+
+        relevant_status = ['Pendiente', 'Cerrado', 'CerradaFuera']
+        df_filtered_anova = mantenimientos[mantenimientos['ESTATUS_CLEAN'].isin(relevant_status)].copy()
+        
+        df_filtered_anova = df_filtered_anova.dropna(subset=[col_actual, col_hrmtro, col_servicio, 'ESTATUS_CLEAN'])
+        
+        df_filtered_anova['score_operativo'] = (
+            pd.to_numeric(df_filtered_anova[col_actual], errors='coerce').fillna(0) +
+            pd.to_numeric(df_filtered_anova[col_hrmtro], errors='coerce').fillna(0) +
+            pd.to_numeric(df_filtered_anova[col_servicio], errors='coerce').fillna(0)
+        ) / 3
+
+        try:
+            df_filtered_anova['SEVERITY_LEVEL'] = pd.qcut(
+                df_filtered_anova['score_operativo'],
+                q=3,
+                labels=['Low', 'Medium', 'High'],
+                duplicates='drop'
+            )
+        except Exception:
+            df_filtered_anova['SEVERITY_LEVEL'] = 'Low'
+
+        filtro_alerta = (
+            (df_filtered_anova['ESTATUS_CLEAN'].isin(['Pendiente', 'CerradaFuera'])) &
+            (df_filtered_anova['overdue_risk'] == 2.0) &
+            (df_filtered_anova['SEVERITY_LEVEL'] == 'High')
+        )
+        red_alert_units = df_filtered_anova[filtro_alerta]
+
+        unidades_alerta_roja = int(red_alert_units[col_alias_mant].nunique())
+
+        red_alert_units_per_dist = red_alert_units.groupby(col_dist_mant)[col_alias_mant].nunique().reset_index()
+        red_alert_units_per_dist.rename(columns={col_alias_mant: 'Unidades en Alerta Roja'}, inplace=True)
+
+        total_units_per_dist = mantenimientos.groupby(col_dist_mant)[col_alias_mant].nunique().reset_index()
+        total_units_per_dist.rename(columns={col_alias_mant: 'Total Unidades'}, inplace=True)
+
+        red_alert_summary = pd.merge(red_alert_units_per_dist, total_units_per_dist, on=col_dist_mant, how='left')
+        red_alert_summary['Porcentaje en Alerta Roja'] = (
+            red_alert_summary['Unidades en Alerta Roja'] / red_alert_summary['Total Unidades']
+        ) * 100
+
+        red_alert_summary_sorted = red_alert_summary.sort_values(by='Unidades en Alerta Roja', ascending=False)
+
+        for _, row in red_alert_summary_sorted.head(10).iterrows():
+            top_distribuidores.append({
+                'distribuidor': str(row[col_dist_mant]),
+                'unidades_alerta_roja': int(row['Unidades en Alerta Roja']),
+                'total_unidades': int(row['Total Unidades']),
+                'porcentaje_alerta': float(row['Porcentaje en Alerta Roja'])
+            })
+        
+        df_lista = df_filtered_anova.sort_values(by='ESTATUS_CLEAN', ascending=False).head(100)
+        for _, fila in df_lista.iterrows():
+            unidad = str(fila.get(col_alias_mant, 'Sin Unidad'))
+            distribuidor = str(fila.get(col_dist_mant, 'Sin Distribuidor'))
+            estatus = str(fila.get('ESTATUS_CLEAN', 'Sin Estatus'))
+            riesgo = str(fila.get('SEVERITY_LEVEL', 'Normal'))
+            
+            horas_actuales = 0
+            val = fila.get(col_actual, 0)
+            if not pd.isna(val):
+                try:
+                    horas_actuales = float(val)
+                except Exception:
+                    pass
+                
+            lista_unidades.append({
+                'unidad': unidad,
+                'distribuidor': distribuidor,
+                'estatus': estatus,
+                'riesgo': riesgo,
+                'horas_actuales': horas_actuales
+            })
+
+    return {
+        'total_distribuidores': total_distribuidores,
+        'pendientes_por_atender': pendientes_por_atender,
+        'unidades_alerta_roja': unidades_alerta_roja,
+        'top_distribuidores': top_distribuidores,
+        'lista_unidades': lista_unidades
+    }
