@@ -11,3 +11,5 @@ Lista de todas las librerías de Python utilizadas y su justificación:
 5. Dash: Permite construir los gráficos en Python y conecta de forma fluida con los datos procesados por Pandas.
 
 6. Plotly: Motor de visualización que utiliza Dash. Permite generar los gráficos interactivos.
+
+7. Scikit-learn: Librería de machine learning usada para el modelo de Clustering K-Means (StandardScaler + KMeans) que segmenta las unidades en 3 grupos de riesgo operativo.

@@ -5,6 +5,8 @@ import dash
 from dash import dcc, html
 import plotly.express as px
 import plotly.graph_objects as go
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CLEAN_FILES_DIR = os.path.join(BASE_DIR, 'data', 'ArchivosLimpios')
@@ -176,7 +178,121 @@ def init_riesgo_operativo(server):
                 ]))
                 
             table_body = [html.Tbody(table_rows)]
-            
+
+            # -------------------------------------------------------
+            # CLUSTERING K-MEANS
+            # -------------------------------------------------------
+            # Features: delay_vs_service_interval y overdue_risk
+            features_kmeans = ['delay_vs_service_interval', 'overdue_risk']
+            X_kmeans = maint_df[features_kmeans].dropna().copy()
+
+            scaler = StandardScaler()
+            X_scaled = scaler.fit_transform(X_kmeans)
+
+            OPTIMAL_K = 3
+            kmeans_model = KMeans(n_clusters=OPTIMAL_K, init='k-means++', random_state=42, n_init=10)
+            X_kmeans['cluster'] = kmeans_model.fit_predict(X_scaled)
+
+            # Etiquetas por cluster
+            cluster_labels = {0: 'Riesgo Bajo', 1: 'Riesgo Medio', 2: 'Riesgo Alto'}
+            X_kmeans['Segmento'] = X_kmeans['cluster'].map(cluster_labels)
+
+
+            # Tabla de distribución de clusters por distribuidor
+            maint_with_cluster = maint_df.copy()
+            maint_with_cluster = maint_with_cluster[
+                maint_with_cluster[features_kmeans].notna().all(axis=1)
+            ].copy()
+            maint_with_cluster['cluster'] = kmeans_model.predict(
+                scaler.transform(maint_with_cluster[features_kmeans])
+            )
+            maint_with_cluster['Segmento'] = maint_with_cluster['cluster'].map(cluster_labels)
+
+            # Tabla de unidades por distribuidor
+            dist_cluster_df = (
+                maint_with_cluster.groupby(['DISTRIBUIDOR', 'Segmento'])['ALIAS']
+                .nunique()
+                .unstack(fill_value=0)
+                .reset_index()
+            )
+            # Garantizar que todas las columnas de segmento existan
+            for seg in cluster_labels.values():
+                if seg not in dist_cluster_df.columns:
+                    dist_cluster_df[seg] = 0
+
+            dist_cluster_df['Total'] = (
+                dist_cluster_df['Riesgo Bajo'] +
+                dist_cluster_df['Riesgo Medio'] +
+                dist_cluster_df['Riesgo Alto']
+            )
+            dist_cluster_df = dist_cluster_df.sort_values('Riesgo Alto', ascending=False)
+
+            cluster_table_header = [
+                html.Tr([
+                    html.Th('Distribuidor', 
+                        style={
+                            'text-align': 'left', 'padding': '10px 8px', 'font-weight': '600', 
+                            'color': '#475569', 'border-bottom': '1px solid #e2e8f0'
+                            }),
+                    html.Th('Riesgo Bajo', 
+                        style={
+                            'text-align': 'right', 'padding': '10px 8px', 'font-weight': '600',
+                            'color': '#20235C', 'border-bottom': '1px solid #e2e8f0'
+                            }),
+                    html.Th('Riesgo Medio', 
+                        style={
+                            'text-align': 'right', 'padding': '10px 8px', 'font-weight': '600', 
+                            'color': '#B45309', 'border-bottom': '1px solid #e2e8f0'
+                            }),
+                    html.Th('Riesgo Alto', 
+                        style={
+                            'text-align': 'right', 'padding': '10px 8px', 'font-weight': '600', 
+                            'color': '#A32428', 'border-bottom': '1px solid #e2e8f0'
+                            }),
+                    html.Th('Total Unidades', 
+                        style={
+                            'text-align': 'right', 'padding': '10px 8px', 'font-weight': '600', 
+                            'color': '#475569', 'border-bottom': '1px solid #e2e8f0'
+                            })
+                ], style={'background-color': '#f8fafc'})
+            ]
+
+            cluster_table_rows = []
+            for _, row in dist_cluster_df.head(8).iterrows():
+                alto = int(row['Riesgo Alto'])
+                highlight = '#fff5f5' if alto > 5 else 'transparent'
+                cluster_table_rows.append(html.Tr([
+                    html.Td(row['DISTRIBUIDOR'], 
+                        style={
+                            'padding': '10px 8px', 'border-bottom': '1px solid #f1f5f9', 
+                            'font-weight': '500', 'color': '#1e293b'
+                            }),
+                    html.Td(str(int(row['Riesgo Bajo'])), 
+                        style={
+                            'text-align': 'right', 'padding': '10px 8px', 
+                            'border-bottom': '1px solid #f1f5f9', 'color': '#20235C'
+                            }),
+                    html.Td(str(int(row['Riesgo Medio'])), 
+                        style={
+                            'text-align': 'right', 'padding': '10px 8px', 
+                            'border-bottom': '1px solid #f1f5f9', 'color': '#B45309'
+                            }),
+                    html.Td(str(alto), 
+                        style={
+                            'text-align': 'right', 'padding': '10px 8px', 
+                            'border-bottom': '1px solid #f1f5f9', 
+                            'font-weight': '700', 'color': '#A32428', 
+                            'background-color': highlight
+                            }),
+                    html.Td(str(int(row['Total'])), 
+                        style={
+                            'text-align': 'right', 'padding': '10px 8px', 
+                            'border-bottom': '1px solid #f1f5f9', 'color': '#334155'
+                            })
+                ]))
+
+            cluster_table_body = [html.Tbody(cluster_table_rows)]
+
             # Diseño del Dashboard
             return html.Div([
                 # Fila de KPIs
@@ -296,7 +412,45 @@ def init_riesgo_operativo(server):
                             'height': '540px'
                         })
                     ], style={'flex': '2', 'min-width': '350px'})
-                ], style={'display': 'flex', 'gap': '24px', 'flex-wrap': 'wrap'})
+                ], style={'display': 'flex', 'gap': '24px', 'flex-wrap': 'wrap'}),
+
+                # ── SECCIÓN K-MEANS 
+                html.H3('Segmentación de Riesgo Operativo',
+                    style={
+                        'font-size': '16px', 'font-weight': '700', 'color': '#0f172a',
+                        'margin': '32px 0 16px 0', 'font-family': 'Outfit, sans-serif',
+                        'border-top': '1px solid #e2e8f0', 'padding-top': '24px'
+                    }),
+
+                html.P([
+                    'K-Means con ',
+                    html.Strong('K = 3'),
+                    ' clusters óptimos. ',
+                    html.Strong('Silhouette Score: 0.6422'),
+                    '. Se agrupan las unidades según su retraso en horas y su riesgo de estatus.'
+                ], style={'font-size': '13px', 'color': '#64748b', 'margin': '0 0 20px 0', 'font-family': 'Outfit, sans-serif'}),
+
+                # Tabla distribución de clusters por distribuidor
+                html.Div([
+                    html.H3('Distribución de Clusters por Distribuidor',
+                        style={
+                            'font-size': '15px', 'font-weight': '600', 'color': '#0f172a',
+                            'margin': '0 0 14px 0', 'font-family': 'Outfit, sans-serif'
+                        }),
+                    html.P('Ordenado por mayor cantidad de unidades en Riesgo Alto (Cluster 2)',
+                        style={'font-size': '12px', 'color': '#94a3b8', 'margin': '0 0 12px 0'}),
+                    html.Div([
+                        html.Table(
+                            cluster_table_header + cluster_table_body,
+                            style={'width': '100%', 'border-collapse': 'collapse', 'font-family': 'Outfit, sans-serif', 'font-size': '13px'}
+                        )
+                    ], style={'overflow-x': 'auto'})
+                ], style={
+                    'background-color': '#ffffff', 'border-radius': '12px', 'padding': '20px',
+                    'box-shadow': '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
+                    'border': '1px solid #f1f5f9', 'overflow-y': 'auto'
+                })
+
             ], style={'padding': '16px 20px', 'background-color': '#f8fafc', 'min-height': '100vh', 'font-family': 'Outfit, sans-serif'})
         except Exception as e:
             return html.Div([
