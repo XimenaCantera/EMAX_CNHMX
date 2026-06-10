@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, DollarSign, Users, Tractor, Upload, UserCircle } from 'lucide-react';
+import { Home, DollarSign, Users, Tractor, Upload, UserCircle } from 'lucide-react';
 import './Sidebar.css';
 
 const navItems = [
-  { path: '/', icon: <LayoutDashboard size={20} />, label: 'Inicio' },
+  { path: '/', icon: <Home size={20} />, label: 'Inicio' },
   { path: '/monetization', icon: <DollarSign size={20} />, label: 'Monetización' },
   { path: '/distributors', icon: <Users size={20} />, label: 'Distribuidores' },
   { path: '/unit', icon: <Tractor size={20} />, label: 'Unidad' },
