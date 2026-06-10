@@ -7,27 +7,20 @@ import {
   TrendingUp,
   Loader2,
   RefreshCw,
-  Download
+  Download,
+  X
 } from 'lucide-react';
 import './Dashboard.css';
-//Usamos lucide-react para poner íconos visuales en las tarjetas del dashboard.
+//Usamos lucide-react para poner íconos en las tarjetas del dashboard.
 
 interface TopOportunidad {
   unidad: string;
   distribuidor: string;
   estado: string;
   proximo_servicio: string;
+  horas_actuales?: number;
   potencial: number;
   servicios_cnt: number;
-}
-
-interface TopCiudad {
-  Ciudad: string;
-  Estado: string;
-  unidades_prioritarias: number;
-  criticas: number;
-  altas: number;
-  servicios_oportunidad: number;
 }
 
 interface DashboardData {
@@ -36,6 +29,7 @@ interface DashboardData {
   valor_potencial: number;
   proximos_servicios: number;
   top_oportunidades: TopOportunidad[];
+  todas_oportunidades?: TopOportunidad[];
   donut_chart_data: {
     critico_pct: number;
     critico_cnt?: number;
@@ -46,12 +40,11 @@ interface DashboardData {
     bajo_pct: number;
     bajo_cnt?: number;
   };
-  recomendaciones: {
+  recomendaciones?: {
     distribuidores_desc: string;
     pendientes_desc: string;
     aftermarket_desc: string;
     nota_ejecutiva?: string;
-    top_5_ciudades?: TopCiudad[];
   };
 }
 
@@ -59,6 +52,7 @@ export const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const cargarDatosDashboard = async () => {
     setLoading(true);
@@ -232,10 +226,10 @@ export const Dashboard: React.FC = () => {
 
         <div className="card table-card">
           <div className="card-header-flex">
-            <h3 className="card-title">TOP SERVICIOS CON MAYOR OPORTUNIDAD</h3>
-            <a href="/monetization" className="btn btn-outline text-xs">
+            <h3 className="card-title">TOP SERVICIOS CON MAYOR OPORTUNIDAD (300 - 600 Horas)</h3>
+            <button onClick={() => setIsModalOpen(true)} className="btn btn-outline text-xs">
               Ver panel detallado
-            </a>
+            </button>
           </div>
 
           <table className="data-table">
@@ -245,6 +239,7 @@ export const Dashboard: React.FC = () => {
                 <th>DISTRIBUIDOR</th>
                 <th>ESTATUS</th>
                 <th>PRÓXIMO SERVICIO</th>
+                <th>HORAS ACTUALES</th>
                 <th>CANT. SERVICIOS</th>
                 <th>POTENCIAL</th>
               </tr>
@@ -268,6 +263,7 @@ export const Dashboard: React.FC = () => {
                     </span>
                   </td>
                   <td>{op.proximo_servicio}</td>
+                  <td>{op.horas_actuales ? `${op.horas_actuales} hrs` : '-'}</td>
                   <td>{op.servicios_cnt} servicios</td>
                   <td className="font-bold">{formatMoney(op.potencial || 0)}</td>
                 </tr>
@@ -277,55 +273,6 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="card map-card" style={{ marginTop: '24px' }}>
-        <h3 className="card-title">CONCENTRACIÓN GEOGRÁFICA DE UNIDADES CRÍTICAS Y ALTAS</h3>
-        <div style={{ height: '700px', width: '100%', borderRadius: '8px', overflow: 'hidden', marginTop: '16px' }}>
-          <iframe 
-            src="http://127.0.0.1:5001/api/mapa" 
-            style={{ width: '100%', height: '100%', border: 'none' }}
-            title="Mapa de Riesgo"
-          />
-        </div>
-        {data.recomendaciones?.nota_ejecutiva && (
-          <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-            <p className="text-sm" style={{ color: '#374151', lineHeight: '1.5' }}>
-              {data.recomendaciones.nota_ejecutiva}
-            </p>
-          </div>
-        )}
-        
-        {data.recomendaciones?.top_5_ciudades && data.recomendaciones.top_5_ciudades.length > 0 && (
-          <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#FFFFFF', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-            <h4 className="font-bold mb-4" style={{ fontSize: '18px', color: '#111827', marginBottom: '16px' }}>Top 5 ciudades prioritarias para foco operativo</h4>
-            <div style={{ overflowX: 'auto' }}>
-              <table className="data-table" style={{ width: '100%', textAlign: 'center', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#111827', color: '#FFFFFF' }}>
-                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Ciudad</th>
-                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Estado</th>
-                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Unidades<br/>prioritarias</th>
-                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Críticas</th>
-                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Altas</th>
-                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Servicios en<br/>oportunidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.recomendaciones.top_5_ciudades.map((ciudad, idx) => (
-                    <tr key={idx}>
-                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.Ciudad}</td>
-                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.Estado}</td>
-                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.unidades_prioritarias}</td>
-                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.criticas}</td>
-                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.altas}</td>
-                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.servicios_oportunidad}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
 
       <div className="actions-section">
         <h3 className="section-title">ACCIONES RECOMENDADAS</h3>
@@ -373,6 +320,58 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {isModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '100%', maxWidth: '1000px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 className="font-bold text-lg">Panel Detallado</h2>
+              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
+                <X size={24} />
+              </button>
+            </div>
+            <div style={{ padding: '20px', overflowY: 'auto' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>ALIAS / SERIE</th>
+                    <th>DISTRIBUIDOR</th>
+                    <th>ESTATUS</th>
+                    <th>PRÓXIMO SERVICIO</th>
+                    <th>HORAS ACTUALES</th>
+                    <th>CANT. SERVICIOS</th>
+                    <th>POTENCIAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.todas_oportunidades || []).map((op, idx) => (
+                    <tr key={idx}>
+                      <td className="font-bold">{op.unidad}</td>
+                      <td>{op.distribuidor}</td>
+                      <td>
+                        <span
+                          className={`badge ${op.estado === 'Crítico'
+                            ? 'badge-critical'
+                            : op.estado === 'Alto'
+                              ? 'badge-warning'
+                              : 'badge-neutral'
+                            }`}
+                        >
+                          {op.estado}
+                        </span>
+                      </td>
+                      <td>{op.proximo_servicio}</td>
+                      <td>{op.horas_actuales ? `${op.horas_actuales} hrs` : '-'}</td>
+                      <td>{op.servicios_cnt} servicios</td>
+                      <td className="font-bold">{formatMoney(op.potencial || 0)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

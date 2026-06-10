@@ -1,180 +1,325 @@
-import React from 'react';
-import { ChevronRight, Wrench, AlertTriangle, Clock } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { AlertTriangle, FileText, Users, Tractor } from 'lucide-react';
 import './Distributors.css';
 
+interface TopDistribuidor {
+  distribuidor: string;
+  unidades_alerta_roja: number;
+  total_unidades: number;
+  porcentaje_alerta: number;
+}
+
+interface UnidadLista {
+  unidad: string;
+  distribuidor: string;
+  estatus: string;
+  riesgo: string;
+  horas_actuales: number;
+}
+
+interface TopCiudad {
+  Ciudad: string;
+  Estado: string;
+  unidades_prioritarias: number;
+  criticas: number;
+  altas: number;
+  servicios_oportunidad: number;
+}
+
+interface DatosDistribuidores {
+  total_distribuidores: number;
+  pendientes_por_atender: number;
+  unidades_alerta_roja: number;
+  unidades_agricultura: number;
+  unidades_otros: number;
+  top_distribuidores: TopDistribuidor[];
+  lista_unidades: UnidadLista[];
+  recomendaciones?: {
+    nota_ejecutiva?: string;
+    top_5_ciudades?: TopCiudad[];
+  };
+}
+
+const calcularProximoServicio = (horas: number): string => {
+  const intervalo = 300;
+  if (horas < intervalo) {
+    return `${intervalo} Hrs`;
+  }
+  const factor = Math.ceil(horas / intervalo);
+  const proximo = factor * intervalo;
+  if (proximo - horas <= 50) {
+    return `${proximo} Hrs (Por vencer)`;
+  }
+  return `${proximo} Hrs`;
+};
+
+const obtenerColorRiesgo = (riesgo: string): string => {
+  const r = riesgo.toLowerCase();
+  if (r === 'high' || r === 'crítico' || r === 'alto') return 'text-critical font-bold';
+  if (r === 'medium' || r === 'medio') return 'text-warning font-bold';
+  if (r === 'low' || r === 'bajo') return 'text-success font-bold';
+  return 'text-muted';
+};
+
+const obtenerClaseRiesgoBg = (riesgo: string): string => {
+  const r = riesgo.toLowerCase();
+  if (r === 'high') return 'bg-critical text-white';
+  if (r === 'medium') return 'bg-warning text-white';
+  if (r === 'low') return 'bg-neutral text-black';
+  return 'bg-neutral text-black';
+};
+
+const obtenerClaseEstatus = (estatus: string): string => {
+  const e = estatus.toLowerCase();
+  if (e === 'pendiente') return 'badge-warning';
+  if (e === 'cerradafuera' || e === 'cerrada fuera') return 'badge-primary';
+  if (e === 'cerrada') return 'badge-success';
+  if (e === 'porvencer') return 'badge-warning';
+  return 'badge-neutral';
+};
+
+// Paleta de colores Reds_r (de oscuro a claro)
+const obtenerColorRojo = (index: number, total: number): string => {
+  const palette = [
+    '#67000d', '#a50f15', '#cb181d', '#ef3b2c', '#fb6a4a',
+    '#fc9272', '#fcbba1', '#fee0d2', '#fff5f0', '#ffffff'
+  ];
+  return palette[Math.min(index, palette.length - 1)];
+};
+
 export const Distributors: React.FC = () => {
+  const [datos, setDatos] = useState<DatosDistribuidores | null>(null);
+  const [cargando, setCargando] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        const respuesta = await fetch('http://localhost:5001/api/distribuidores');
+        const json = await respuesta.json();
+
+        if (json.success && json.data) {
+          setDatos(json.data);
+        } else {
+          setError(json.error || 'Error al cargar los datos');
+        }
+      } catch (err) {
+        console.error("Error cargando distribuidores:", err);
+        setError('Error de conexión al servidor');
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    cargarDatos();
+  }, []);
+
+  if (cargando) {
+    return <div className="distributors-page p-4">Cargando datos de distribuidores...</div>;
+  }
+
+  if (error || !datos) {
+    return <div className="distributors-page p-4">No hay datos disponibles</div>;
+  }
+
   return (
     <div className="distributors-page">
-      <div className="page-header">
+      <div className="page-header" style={{ marginBottom: '20px' }}>
         <h1>Distribuidores</h1>
-        <p className="text-muted">Resumen ejecutivo de carga, mantenimiento y oportunidad comercial</p>
       </div>
 
-      <div className="metrics-grid dist-metrics">
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         <div className="card kpi-card">
-          <span className="kpi-title">Distribuidores Activos</span>
-          <div className="kpi-value-row">
-            <span className="kpi-value text-main">124</span>
-            <span className="kpi-trend text-primary">+3 este mes</span>
+          <div className="kpi-header">
+            <span className="kpi-title">DISTRIBUIDORES REGISTRADOS</span>
+            <Users size={18} className="text-muted" />
           </div>
-        </div>
-        
-        <div className="card kpi-card">
-          <span className="kpi-title">Pendientes por Atender</span>
-          <div className="kpi-value-row">
-            <span className="kpi-value text-main">48</span>
-            <span className="kpi-trend text-critical">Requiere acción</span>
-          </div>
-        </div>
-
-        <div className="card kpi-card border-critical">
-          <span className="kpi-title text-critical flex items-center gap-sm">
-            <AlertTriangle size={14} /> Alertas Críticas
-          </span>
-          <div className="kpi-value-row">
-            <span className="kpi-value text-critical">7</span>
-            <span className="kpi-trend text-critical">Urgente</span>
+          <div className="kpi-value">
+            {datos.total_distribuidores}
           </div>
         </div>
 
         <div className="card kpi-card">
-          <span className="kpi-title">Próximos Mantenimientos</span>
-          <div className="kpi-value-row">
-            <span className="kpi-value text-main">212</span>
-            <span className="kpi-trend text-primary">Próximos 30 días</span>
+          <div className="kpi-header">
+            <span className="kpi-title">PENDIENTES POR ATENDER</span>
+            <FileText size={18} className="text-muted" />
           </div>
-        </div>
-      </div>
-
-      <div className="main-content-grid">
-        <div className="card top-distributors">
-          <h3 className="card-title">Top 5 Distribuidores por Oportunidad</h3>
-          
-          <div className="distributor-bars">
-            <div className="dist-item">
-              <div className="dist-info">
-                <span>Distribuidora Norte (Monterrey)</span>
-                <span className="font-bold">$1.2M USD</span>
-              </div>
-              <div className="dist-bar-bg"><div className="dist-bar-fill bg-primary" style={{width: '90%'}}></div></div>
-            </div>
-
-            <div className="dist-item">
-              <div className="dist-info">
-                <span>Agromaq Centro (CDMX)</span>
-                <span className="font-bold">$850k USD</span>
-              </div>
-              <div className="dist-bar-bg"><div className="dist-bar-fill bg-primary-light" style={{width: '70%'}}></div></div>
-            </div>
-
-            <div className="dist-item">
-              <div className="dist-info">
-                <span>Equipos Industriales (Guadalajara)</span>
-                <span className="font-bold">$620k USD</span>
-              </div>
-              <div className="dist-bar-bg"><div className="dist-bar-fill bg-muted" style={{width: '50%'}}></div></div>
-            </div>
-
-            <div className="dist-item">
-              <div className="dist-info">
-                <span>Maquinaria del Pacífico (Sinaloa)</span>
-                <span className="font-bold">$410k USD</span>
-              </div>
-              <div className="dist-bar-bg"><div className="dist-bar-fill bg-neutral-dark" style={{width: '35%'}}></div></div>
-            </div>
-
-            <div className="dist-item">
-              <div className="dist-info">
-                <span>Sur Tractores (Chiapas)</span>
-                <span className="font-bold">$290k USD</span>
-              </div>
-              <div className="dist-bar-bg"><div className="dist-bar-fill bg-neutral-dark" style={{width: '20%'}}></div></div>
-            </div>
+          <div className="kpi-value">
+            {datos.pendientes_por_atender}
           </div>
         </div>
 
-        <div className="card priority-units">
-          <div className="card-header-flex">
-            <h3 className="card-title">Unidades Prioritarias</h3>
-            <span className="text-xs font-bold cursor-pointer">Ver todo</span>
+        <div className="card kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">UNIDADES EN ALERTA ROJA</span>
+            <AlertTriangle size={18} className="text-warning" />
           </div>
+          <div className="kpi-value text-warning">
+            {datos.unidades_alerta_roja}
+          </div>
+        </div>
 
-          <div className="priority-list">
-            <div className="priority-item">
-              <div className="priority-icon bg-critical-light text-critical">
-                <Wrench size={18} />
-              </div>
-              <div className="priority-content">
-                <div className="font-bold text-sm">Dist. Norte - CH-902</div>
-                <div className="text-xs text-critical">Fallo motor (48h)</div>
-              </div>
-              <ChevronRight size={18} className="text-muted" />
+        <div className="card kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">TIPO DE UNIDADES</span>
+            <Tractor size={18} className="text-muted" />
+          </div>
+          <div style={{ display: 'flex', gap: '20px', marginTop: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span className="kpi-value" style={{ color: '#2E7D32' }}>{datos.unidades_agricultura}</span>
+              <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: '500', marginTop: '-4px' }}>Agricultura</span>
             </div>
-
-            <div className="priority-item">
-              <div className="priority-icon bg-critical-light text-critical">
-                <AlertTriangle size={18} />
-              </div>
-              <div className="priority-content">
-                <div className="font-bold text-sm">Agromaq - TX-105</div>
-                <div className="text-xs text-critical">Alerta sistema hid. (24h)</div>
-              </div>
-              <ChevronRight size={18} className="text-muted" />
-            </div>
-
-            <div className="priority-item">
-              <div className="priority-icon bg-neutral text-primary">
-                <Clock size={18} />
-              </div>
-              <div className="priority-content">
-                <div className="font-bold text-sm">Eq. Ind. - CX-500</div>
-                <div className="text-xs text-primary">Mantenimiento preventivo</div>
-              </div>
-              <ChevronRight size={18} className="text-muted" />
-            </div>
-
-            <div className="priority-item">
-              <div className="priority-icon bg-neutral text-primary">
-                <Clock size={18} />
-              </div>
-              <div className="priority-content">
-                <div className="font-bold text-sm">Sur Tract - MX-200</div>
-                <div className="text-xs text-primary">Revisión 500 hrs</div>
-              </div>
-              <ChevronRight size={18} className="text-muted" />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span className="kpi-value" style={{ color: '#9CA3AF' }}>{datos.unidades_otros}</span>
+              <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: '500', marginTop: '-4px' }}>Otros</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="card chart-section">
-        <div className="chart-header">
-          <h3 className="card-title">Seguimiento de Pendientes vs Atendidos</h3>
-          <div className="chart-legend">
-            <span className="legend-item"><span className="legend-dot bg-primary"></span> Atendidos</span>
-            <span className="legend-item"><span className="legend-dot bg-critical"></span> Pendientes</span>
+      <div className="main-content-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        {/* Lado izquierdo: Tablas */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Tabla Top Distribuidores */}
+          <div className="card">
+            <h3 className="card-title" style={{ marginBottom: '15px', fontSize: '16px', fontWeight: 'bold' }}>Top distribuidores con Unidades en Alerta Roja</h3>
+            <div className="table-responsive">
+              <table className="clean-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--color-border)', color: 'var(--color-main)' }}>
+                    <th style={{ padding: '8px' }}>Distribuidor</th>
+                    <th style={{ padding: '8px', textAlign: 'center' }}>Unidades en Alerta Roja</th>
+                    <th style={{ padding: '8px', textAlign: 'center' }}>Total de unidades</th>
+                    <th style={{ padding: '8px', textAlign: 'center' }}>Porcentaje entre<br />todas las unidades</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {datos.top_distribuidores.map((item, index) => (
+                    <tr key={index} style={{ borderBottom: '1px solid var(--color-bg)' }}>
+                      <td style={{ padding: '12px 8px' }} className="text-main">{item.distribuidor}</td>
+                      <td style={{ padding: '12px 8px', textAlign: 'center' }} className="text-main">{item.unidades_alerta_roja}</td>
+                      <td style={{ padding: '12px 8px', textAlign: 'center' }} className="text-main">{item.total_unidades}</td>
+                      <td style={{ padding: '12px 8px', textAlign: 'center' }} className="text-main">{item.porcentaje_alerta.toFixed(2)}%</td>
+                    </tr>
+                  ))}
+                  {datos.top_distribuidores.length === 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '12px 8px', textAlign: 'center' }}>No hay datos disponibles</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-        
-        {/* Placeholder for the line chart */}
-        <div className="chart-placeholder">
-          <svg viewBox="0 0 800 200" className="mock-chart">
-            <path d="M 50 180 Q 200 150 400 120 T 750 40" fill="none" stroke="var(--color-primary-light)" strokeWidth="4" />
-            <path d="M 50 80 Q 200 100 400 110 T 750 160" fill="none" stroke="var(--color-secondary)" strokeWidth="4" strokeDasharray="10,10" />
-            
-            <text x="30" y="40" fontSize="10" fill="var(--color-text-muted)">100</text>
-            <text x="30" y="90" fontSize="10" fill="var(--color-text-muted)">75</text>
-            <text x="30" y="140" fontSize="10" fill="var(--color-text-muted)">50</text>
-            <text x="30" y="190" fontSize="10" fill="var(--color-text-muted)">25</text>
-            <text x="30" y="240" fontSize="10" fill="var(--color-text-muted)">0</text>
-            
-            <text x="100" y="220" fontSize="10" fill="var(--color-text-muted)">Lun</text>
-            <text x="250" y="220" fontSize="10" fill="var(--color-text-muted)">Mar</text>
-            <text x="400" y="220" fontSize="10" fill="var(--color-text-muted)">Mié</text>
-            <text x="550" y="220" fontSize="10" fill="var(--color-text-muted)">Jue</text>
-            <text x="700" y="220" fontSize="10" fill="var(--color-text-muted)">Vie</text>
-          </svg>
+
+        {/* Lado derecho: Gráfica */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <h3 className="card-title" style={{ marginBottom: '20px', fontSize: '16px', fontWeight: 'bold' }}>Top 10 Distribuidores con Unidades en Alerta Roja</h3>
+          <div style={{ display: 'flex', gap: '5px', height: '400px', padding: '20px 40px 60px 40px', position: 'relative', borderLeft: '1px solid #eee', borderBottom: '1px solid #eee', marginLeft: '70px' }}>
+            {/* Eje Y simplificado */}
+            <div style={{ position: 'absolute', left: '-45px', top: '20px', bottom: '60px', width: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '10px', color: '#666' }}>
+              <span>1200</span>
+              <span>1000</span>
+              <span>800</span>
+              <span>600</span>
+              <span>400</span>
+              <span>200</span>
+              <span>0</span>
+            </div>
+
+            {/* Títulos de Ejes */}
+            <div style={{ position: 'absolute', left: '-60px', top: '50%', transform: 'translate(-50%, -50%) rotate(-90deg)', fontSize: '12px', color: '#666', whiteSpace: 'nowrap' }}>
+              Número de Unidades en Alerta Roja
+            </div>
+            <div style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', fontSize: '12px', color: '#666', fontWeight: 'bold' }}>
+              DISTRIBUIDOR
+            </div>
+
+            {/* Barras */}
+            {datos.top_distribuidores.map((d, i) => {
+              const maxVal = Math.max(...datos.top_distribuidores.map(x => x.unidades_alerta_roja)) || 1;
+              // Ajustamos maxVal para que las barras se vean bien (ej. 1200 si el max es 1100)
+              const chartMax = Math.ceil(maxVal / 200) * 200;
+              const alturaPct = (d.unidades_alerta_roja / chartMax) * 100;
+
+              return (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
+                  <div
+                    style={{
+                      width: '80%',
+                      height: `${alturaPct}%`,
+                      backgroundColor: obtenerColorRojo(i, datos.top_distribuidores.length),
+                      border: '1px solid rgba(0,0,0,0.1)'
+                    }}
+                    title={`${d.distribuidor}: ${d.unidades_alerta_roja}`}
+                  ></div>
+                  <span style={{
+                    fontSize: '10px',
+                    color: '#333',
+                    marginTop: '5px',
+                    transform: 'rotate(45deg)',
+                    transformOrigin: 'top left',
+                    whiteSpace: 'nowrap',
+                    width: '10px'
+                  }}>
+                    {d.distribuidor.substring(0, 15)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
+      </div>
+
+      <div className="card map-card" style={{ marginTop: '24px' }}>
+        <h3 className="card-title">CONCENTRACIÓN GEOGRÁFICA DE UNIDADES CRÍTICAS Y ALTAS</h3>
+        <div style={{ height: '700px', width: '100%', borderRadius: '8px', overflow: 'hidden', marginTop: '16px' }}>
+          <iframe
+            src="http://127.0.0.1:5001/api/mapa"
+            style={{ width: '100%', height: '100%', border: 'none' }}
+            title="Mapa de Riesgo"
+          />
+        </div>
+        {datos.recomendaciones?.nota_ejecutiva && (
+          <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+            <p className="text-sm" style={{ color: '#374151', lineHeight: '1.5' }}>
+              {datos.recomendaciones.nota_ejecutiva}
+            </p>
+          </div>
+        )}
+
+        {datos.recomendaciones?.top_5_ciudades && datos.recomendaciones.top_5_ciudades.length > 0 && (
+          <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#FFFFFF', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+            <h4 className="font-bold mb-4" style={{ fontSize: '18px', color: '#111827', marginBottom: '16px' }}>Top 5 ciudades prioritarias para foco operativo</h4>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="data-table" style={{ width: '100%', textAlign: 'center', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#111827', color: '#FFFFFF' }}>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Ciudad</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Estado</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Unidades<br />prioritarias</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Críticas</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Altas</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Servicios en<br />oportunidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {datos.recomendaciones.top_5_ciudades.map((ciudad, idx) => (
+                    <tr key={idx}>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.Ciudad}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.Estado}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.unidades_prioritarias}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.criticas}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.altas}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.servicios_oportunidad}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -80,17 +80,10 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
                 
             total_unidades_grafica = conteo_critico + conteo_alto + conteo_medio + conteo_bajo
             
-            # Imprimir logs solicitados
-            print("Dona riesgo basada en archivo de riesgo filtrado")
-            print(f"Total unidades: {total_unidades_grafica}")
-            print(f"Crítico: {conteo_critico}, Alto: {conteo_alto}, Medio: {conteo_medio}, Bajo: {conteo_bajo}")
-            
         except Exception as e:
-            print(f"Error leyendo el archivo de riesgo: {e}")
             conteo_critico, conteo_alto, conteo_medio, conteo_bajo = 0, 0, 0, 0
             total_unidades_grafica = 0
     else:
-        print("No se encontró el archivo de tabla de riesgo en archivos_compañia.")
         conteo_critico, conteo_alto, conteo_medio, conteo_bajo = 0, 0, 0, 0
         total_unidades_grafica = 0
     if total_unidades_grafica > 0:
@@ -101,52 +94,51 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
     else:
         porcentaje_critico, porcentaje_alto, porcentaje_medio, porcentaje_bajo = 0.0, 0.0, 0.0, 0.0
 
-    # --- 5. Tabla: Top servicios con mayor oportunidad ---
-    unidades['potencial'] = unidades['servicios_oportunidad'] * 3500
-    mejores_unidades = unidades.sort_values(by='potencial', ascending=False).head(5)
+    # --- 5. Top servicios con mayor oportunidad ---
+    # Filtrar por servicios con 300 a 600 horas por la mayor oportunidad de aftermarket
+    if 'Horometro' in unidades.columns:
+        horometro_num = pd.to_numeric(unidades['Horometro'], errors='coerce').fillna(0)
+        unidades_filtradas = unidades[(horometro_num >= 300) & (horometro_num <= 600)].copy()
+        unidades_filtradas['Horometro_num'] = pd.to_numeric(unidades_filtradas['Horometro'], errors='coerce').fillna(0)
+    else:
+        unidades_filtradas = unidades.copy()
+        unidades_filtradas['Horometro_num'] = 0
+        
+    unidades_filtradas['potencial'] = unidades_filtradas['servicios_oportunidad'] * 3500
     
-    top_oportunidades = []
-    for _, fila in mejores_unidades.iterrows():
-        # Calcular categoría de urgencia
+    todas_las_unidades = unidades_filtradas.sort_values(by='Horometro_num', ascending=True)
+    
+    # Tomar el top 5 por potencial y luego ordenar por horas ascendente (iniciando en 300)
+    mejores_unidades = unidades_filtradas.sort_values(by='potencial', ascending=False).head(5)
+    mejores_unidades = mejores_unidades.sort_values(by='Horometro_num', ascending=True)
+    
+    def formatear_oportunidad(fila):
         so = fila['servicios_oportunidad']
-        if so >= 20:
-            estado = 'Crítico'
-        elif so >= 10:
-            estado = 'Alto'
-        elif so >= 5:
-            estado = 'Medio'
-        else:
-            estado = 'Bajo'
+        if so >= 20: estado = 'Crítico'
+        elif so >= 10: estado = 'Alto'
+        elif so >= 5: estado = 'Medio'
+        else: estado = 'Bajo'
             
-        # Formatear el nombre de la unidad
         alias_unidad = str(fila.get('Alias', 'Sin Alias'))
         distribuidor = str(fila.get('Distribuidor', 'Sin Distribuidor'))
         
-        # Como el Alias ya trae el nombre del distribuidor integrado en muchos casos (ej. "ENAGRI - NH10100M"),
-        # separamos por " - " y tomamos la última parte para que quede solo el número o clave.
         if ' - ' in alias_unidad:
             unidad_mostrar = alias_unidad.split(' - ')[-1].strip()
         else:
             unidad_mostrar = alias_unidad
             
-        top_oportunidades.append({
+        return {
             'unidad': unidad_mostrar,
             'distribuidor': distribuidor if pd.notna(fila.get('Distribuidor')) else '',
             'estado': estado,
-            'proximo_servicio': 'Oportunidad activa', # Texto estático solicitado
+            'proximo_servicio': 'Oportunidad activa',
+            'horas_actuales': int(fila.get('Horometro', 0)) if pd.notna(fila.get('Horometro')) else 0,
             'potencial': fila['potencial'],
             'servicios_cnt': int(so)
-        })
+        }
 
-    # --- Validaciones por consola ---
-    print("\n=== RESUMEN CÁLCULOS DASHBOARD ===")
-    print(f"Total servicios en oportunidad: {oportunidades_activas}")
-    print(f"Total próximos servicios: {proximos_servicios}")
-    print(f"Total unidades con alta carga de oportunidad: {unidades_alta_carga}")
-    print(f"Conteo urgencia -> Crítico: {conteo_critico}, Alto: {conteo_alto}, Medio: {conteo_medio}, Bajo: {conteo_bajo}")
-    print("Top 5 unidades por potencial:")
-    for t in top_oportunidades:
-        print(f" - {t['unidad']}: {t['servicios_cnt']} servicios -> ${t['potencial']:,.2f}")
+    top_oportunidades = [formatear_oportunidad(fila) for _, fila in mejores_unidades.iterrows()]
+    todas_oportunidades = [formatear_oportunidad(fila) for _, fila in todas_las_unidades.iterrows()]
 
     # --- 6. Mapa Interactivo y Nota Ejecutiva ---
     import plotly.express as px
@@ -171,9 +163,7 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
             df_mapa["Longitud"] = pd.to_numeric(df_mapa["Longitud"], errors="coerce")
             df_mapa = df_mapa.dropna(subset=["Latitud", "Longitud"])
             df_mapa = df_mapa[(df_mapa["Latitud"] != 0) & (df_mapa["Longitud"] != 0)]
-            
-            print(f"Unidades de riesgo con ubicación válida: {len(df_mapa)}")
-            
+        
             # Agrupación requerida
             mapa_agrupado = df_mapa.groupby(
                 ["Estado", "Ciudad", "Distribuidor", "Latitud", "Longitud", "Nivel de riesgo"],
@@ -294,8 +284,7 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
                         "servicios_oportunidad": int(row["servicios_oportunidad"])
                     })
 
-    print("==================================\n")
-    
+    # Generar mapa en distribuidores
     global _CACHE_MAPA
     _CACHE_MAPA = html_mapa
 
@@ -310,6 +299,7 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
         'valor_potencial': valor_potencial,
         'proximos_servicios': proximos_servicios,
         'top_oportunidades': top_oportunidades,
+        'todas_oportunidades': todas_oportunidades,
         'donut_chart_data': {
             'critico_pct': porcentaje_critico,
             'critico_cnt': conteo_critico,
@@ -343,3 +333,154 @@ def obtener_data(directorio_archivos_limpios, forzar_actualizacion=False):
         resultado = obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion)
         _CACHE_DASHBOARD = resultado
         return resultado
+def obtener_datos_distribuidores(directorio_archivos_limpios):
+    ruta_mantenimientos = f"{directorio_archivos_limpios}/new_mantenimientos.xlsx"
+    
+    try:
+        mantenimientos = pd.read_excel(ruta_mantenimientos)
+    except Exception:
+        mantenimientos = pd.DataFrame()
+
+    def buscar_columna(df, opciones):
+        cols_lower = {c.lower().strip(): c for c in df.columns}
+        for opc in opciones:
+            if opc.lower().strip() in cols_lower:
+                return cols_lower[opc.lower().strip()]
+        return None
+
+    if mantenimientos.empty:
+        return {
+            'total_distribuidores': 0,
+            'pendientes_por_atender': 0,
+            'unidades_alerta_roja': 0,
+            'top_distribuidores': [],
+            'lista_unidades': []
+        }
+
+    col_dist_mant = buscar_columna(mantenimientos, ['DISTRIBUIDOR', 'Distribuidor'])
+    col_estatus_mant = buscar_columna(mantenimientos, ['ESTATUS', 'Estatus'])
+    col_alias_mant = buscar_columna(mantenimientos, ['ALIAS', 'Alias', 'Unidad'])
+    col_actual = buscar_columna(mantenimientos, ['ACTUAL', 'Actual'])
+    col_hrmtro = buscar_columna(mantenimientos, ['HRMTRO', 'Hrmtro'])
+    col_servicio = buscar_columna(mantenimientos, ['SERVICIO', 'Servicio'])
+
+    total_distribuidores = int(mantenimientos[col_dist_mant].nunique()) if col_dist_mant else 0
+    
+    if col_estatus_mant:
+        estatus_norm = mantenimientos[col_estatus_mant].astype(str).str.strip().str.title()
+        pendientes_por_atender = int(estatus_norm.isin(['Pendiente']).sum())
+    else:
+        pendientes_por_atender = 0
+
+    unidades_alerta_roja = 0
+    top_distribuidores = []
+    lista_unidades = []
+
+    if col_estatus_mant and col_alias_mant and col_dist_mant and col_actual and col_hrmtro and col_servicio:
+        status_risk_mapping = {'Cerrada': 0, 'PorVencer': 1, 'EnProceso': 1, 'Abierta': 1, 'Pendiente': 2, 'CerradaFuera': 2}
+        mantenimientos['ESTATUS_CLEAN'] = mantenimientos[col_estatus_mant].astype(str).str.strip()
+        mantenimientos['overdue_risk'] = mantenimientos['ESTATUS_CLEAN'].map(status_risk_mapping).fillna(0)
+
+        relevant_status = ['Pendiente', 'Cerrado', 'CerradaFuera']
+        df_filtered_anova = mantenimientos[mantenimientos['ESTATUS_CLEAN'].isin(relevant_status)].copy()
+        
+        df_filtered_anova = df_filtered_anova.dropna(subset=[col_actual, col_hrmtro, col_servicio, 'ESTATUS_CLEAN'])
+        
+        df_filtered_anova['score_operativo'] = (
+            pd.to_numeric(df_filtered_anova[col_actual], errors='coerce').fillna(0) +
+            pd.to_numeric(df_filtered_anova[col_hrmtro], errors='coerce').fillna(0) +
+            pd.to_numeric(df_filtered_anova[col_servicio], errors='coerce').fillna(0)
+        ) / 3
+
+        try:
+            df_filtered_anova['SEVERITY_LEVEL'] = pd.qcut(
+                df_filtered_anova['score_operativo'],
+                q=3,
+                labels=['Low', 'Medium', 'High'],
+                duplicates='drop'
+            )
+        except Exception:
+            df_filtered_anova['SEVERITY_LEVEL'] = 'Low'
+
+        filtro_alerta = (
+            (df_filtered_anova['ESTATUS_CLEAN'].isin(['Pendiente', 'CerradaFuera'])) &
+            (df_filtered_anova['overdue_risk'] == 2.0) &
+            (df_filtered_anova['SEVERITY_LEVEL'] == 'High')
+        )
+        red_alert_units = df_filtered_anova[filtro_alerta]
+
+        unidades_alerta_roja = int(red_alert_units[col_alias_mant].nunique())
+
+        red_alert_units_per_dist = red_alert_units.groupby(col_dist_mant)[col_alias_mant].nunique().reset_index()
+        red_alert_units_per_dist.rename(columns={col_alias_mant: 'Unidades en Alerta Roja'}, inplace=True)
+
+        total_units_per_dist = mantenimientos.groupby(col_dist_mant)[col_alias_mant].nunique().reset_index()
+        total_units_per_dist.rename(columns={col_alias_mant: 'Total Unidades'}, inplace=True)
+
+        red_alert_summary = pd.merge(red_alert_units_per_dist, total_units_per_dist, on=col_dist_mant, how='left')
+        red_alert_summary['Porcentaje en Alerta Roja'] = (
+            red_alert_summary['Unidades en Alerta Roja'] / red_alert_summary['Total Unidades']
+        ) * 100
+
+        red_alert_summary_sorted = red_alert_summary.sort_values(by='Unidades en Alerta Roja', ascending=False)
+
+        for _, row in red_alert_summary_sorted.head(10).iterrows():
+            top_distribuidores.append({
+                'distribuidor': str(row[col_dist_mant]),
+                'unidades_alerta_roja': int(row['Unidades en Alerta Roja']),
+                'total_unidades': int(row['Total Unidades']),
+                'porcentaje_alerta': float(row['Porcentaje en Alerta Roja'])
+            })
+        
+        df_lista = df_filtered_anova.sort_values(by='ESTATUS_CLEAN', ascending=False).head(100)
+        for _, fila in df_lista.iterrows():
+            unidad = str(fila.get(col_alias_mant, 'Sin Unidad'))
+            distribuidor = str(fila.get(col_dist_mant, 'Sin Distribuidor'))
+            estatus = str(fila.get('ESTATUS_CLEAN', 'Sin Estatus'))
+            riesgo = str(fila.get('SEVERITY_LEVEL', 'Normal'))
+            
+            horas_actuales = 0
+            val = fila.get(col_actual, 0)
+            if not pd.isna(val):
+                try:
+                    horas_actuales = float(val)
+                except Exception:
+                    pass
+                
+            lista_unidades.append({
+                'unidad': unidad,
+                'distribuidor': distribuidor,
+                'estatus': estatus,
+                'riesgo': riesgo,
+                'horas_actuales': horas_actuales
+            })
+
+    try:
+        data_dash = obtener_data(directorio_archivos_limpios)
+        recs = data_dash.get('recomendaciones', {})
+    except Exception:
+        recs = {}
+        
+    unidades_agricultura = 0
+    unidades_otros = 0
+    col_marca = buscar_columna(mantenimientos, ['MARCA', 'Marca', 'BRAND'])
+    if col_alias_mant and col_marca:
+        agric_marcas = ['NEW HOLLAND AG', 'CASE IH']
+        # Filtramos por las marcas agricolas
+        df_agric = mantenimientos[mantenimientos[col_marca].isin(agric_marcas)]
+        unidades_agricultura = int(df_agric[col_alias_mant].nunique())
+        
+        # Filtramos por las marcas NO agricolas
+        df_otros = mantenimientos[~mantenimientos[col_marca].isin(agric_marcas)]
+        unidades_otros = int(df_otros[col_alias_mant].nunique())
+
+    return {
+        'total_distribuidores': total_distribuidores,
+        'pendientes_por_atender': pendientes_por_atender,
+        'unidades_alerta_roja': unidades_alerta_roja,
+        'unidades_agricultura': unidades_agricultura,
+        'unidades_otros': unidades_otros,
+        'top_distribuidores': top_distribuidores,
+        'lista_unidades': lista_unidades,
+        'recomendaciones': recs
+    }
