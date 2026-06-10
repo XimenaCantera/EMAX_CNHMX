@@ -21,9 +21,18 @@ interface TopOportunidad {
   servicios_cnt: number;
 }
 
+interface TopCiudad {
+  Ciudad: string;
+  Estado: string;
+  unidades_prioritarias: number;
+  criticas: number;
+  altas: number;
+  servicios_oportunidad: number;
+}
+
 interface DashboardData {
   oportunidades_activas: number;
-  unidades_criticas: number;
+  unidades_alta_carga: number;
   valor_potencial: number;
   proximos_servicios: number;
   top_oportunidades: TopOportunidad[];
@@ -41,6 +50,8 @@ interface DashboardData {
     distribuidores_desc: string;
     pendientes_desc: string;
     aftermarket_desc: string;
+    nota_ejecutiva?: string;
+    top_5_ciudades?: TopCiudad[];
   };
 }
 
@@ -141,13 +152,13 @@ export const Dashboard: React.FC = () => {
             {(data.oportunidades_activas || 0).toLocaleString('es-MX')}
           </div>
         </div>
-        <div className="card kpi-card kpi-critical">
+        <div className="card kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">UNIDADES CRÍTICAS</span>
-            <AlertTriangle size={18} className="text-critical" />
+            <span className="kpi-title">UNIDADES CON ALTA CARGA DE OPORTUNIDAD</span>
+            <AlertTriangle size={18} className="text-warning" />
           </div>
-          <div className="kpi-value text-critical">
-            {(data.unidades_criticas || 0).toLocaleString('es-MX')}
+          <div className="kpi-value text-warning">
+            {(data.unidades_alta_carga || 0).toLocaleString('es-MX')}
           </div>
         </div>
 
@@ -230,7 +241,7 @@ export const Dashboard: React.FC = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>UNIDAD</th>
+                <th>ALIAS / SERIE</th>
                 <th>DISTRIBUIDOR</th>
                 <th>ESTATUS</th>
                 <th>PRÓXIMO SERVICIO</th>
@@ -264,6 +275,56 @@ export const Dashboard: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="card map-card" style={{ marginTop: '24px' }}>
+        <h3 className="card-title">CONCENTRACIÓN GEOGRÁFICA DE UNIDADES CRÍTICAS Y ALTAS</h3>
+        <div style={{ height: '700px', width: '100%', borderRadius: '8px', overflow: 'hidden', marginTop: '16px' }}>
+          <iframe 
+            src="http://127.0.0.1:5001/api/mapa" 
+            style={{ width: '100%', height: '100%', border: 'none' }}
+            title="Mapa de Riesgo"
+          />
+        </div>
+        {data.recomendaciones?.nota_ejecutiva && (
+          <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+            <p className="text-sm" style={{ color: '#374151', lineHeight: '1.5' }}>
+              {data.recomendaciones.nota_ejecutiva}
+            </p>
+          </div>
+        )}
+        
+        {data.recomendaciones?.top_5_ciudades && data.recomendaciones.top_5_ciudades.length > 0 && (
+          <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#FFFFFF', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+            <h4 className="font-bold mb-4" style={{ fontSize: '18px', color: '#111827', marginBottom: '16px' }}>Top 5 ciudades prioritarias para foco operativo</h4>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="data-table" style={{ width: '100%', textAlign: 'center', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#111827', color: '#FFFFFF' }}>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Ciudad</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Estado</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Unidades<br/>prioritarias</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Críticas</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Altas</th>
+                    <th style={{ padding: '12px', border: '1px solid #E5E7EB', color: '#FFFFFF', textAlign: 'center' }}>Servicios en<br/>oportunidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.recomendaciones.top_5_ciudades.map((ciudad, idx) => (
+                    <tr key={idx}>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.Ciudad}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.Estado}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.unidades_prioritarias}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.criticas}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.altas}</td>
+                      <td style={{ padding: '12px', border: '1px solid #E5E7EB' }}>{ciudad.servicios_oportunidad}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="actions-section">
