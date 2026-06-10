@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import pandas as pd
 
@@ -18,18 +18,18 @@ def get_status():
     }), 200
 
 @app.route('/api/upload', methods=['POST'])
-def upload_files():
+def subir_archivos():
     # Soporta múltiples archivos
-    uploaded_files = request.files.getlist('files') or request.files.getlist('file')
+    archivos_subidos = request.files.getlist('files') or request.files.getlist('file')
     
-    if not uploaded_files or len(uploaded_files) == 0 or (len(uploaded_files) == 1 and uploaded_files[0].filename == ''):
+    if not archivos_subidos or len(archivos_subidos) == 0 or (len(archivos_subidos) == 1 and archivos_subidos[0].filename == ''):
         return jsonify({"error": "No se recibió ningún archivo válido en la solicitud."}), 400
         
-    results = []
+    resultados = []
     
-    # Sanitizar valores para evitar errores
+    # Limpiar valores para evitar errores
     import numpy as np
-    def sanitize_val(v):
+    def sanitizar_valor(v):
         if pd.isnull(v) or v is None:
             return None
         if isinstance(v, (pd.Timestamp, pd.Timedelta)):
@@ -44,14 +44,14 @@ def upload_files():
             pass
         return v
         
-    for file in uploaded_files:
-        if file.filename == '':
+    for archivo in archivos_subidos:
+        if archivo.filename == '':
             continue
             
         # Revisar la extensión del archivo
-        if not file.filename.lower().endswith('.xlsx'):
-            results.append({
-                "filename": file.filename,
+        if not archivo.filename.lower().endswith('.xlsx'):
+            resultados.append({
+                "filename": archivo.filename,
                 "success": False,
                 "error": "Solo se permiten archivos de tipo Excel (.xlsx)."
             })
@@ -62,59 +62,70 @@ def upload_files():
             os.makedirs(CLEAN_FILES_DIR, exist_ok=True)
             
             # Guardar el archivo en la carpeta ArchivosLimpios
-            target_path = os.path.join(CLEAN_FILES_DIR, file.filename)
-            file.save(target_path)
+            ruta_destino = os.path.join(CLEAN_FILES_DIR, archivo.filename)
+            archivo.save(ruta_destino)
             
             # Leemos el archivo de Excel
-            df = pd.read_excel(target_path)
+            dataframe_excel = pd.read_excel(ruta_destino)
             
-            rows_count = len(df)
-            columns_list = list(df.columns)
-            file_size = os.path.getsize(target_path)
+            cantidad_filas = len(dataframe_excel)
+            lista_columnas = list(dataframe_excel.columns)
+            tamano_archivo = os.path.getsize(ruta_destino)
             
             # Obtenemos las primeras 5 filas para revisar
-            preview_raw = df.head(5).to_dict(orient='records')
+            vista_previa_cruda = dataframe_excel.head(5).to_dict(orient='records')
             
-            preview_data = [
-                {k: sanitize_val(v) for k, v in row.items()}
-                for row in preview_raw
+            vista_previa_datos = [
+                {k: sanitizar_valor(v) for k, v in row.items()}
+                for row in vista_previa_cruda
             ]
             
-            results.append({
-                "filename": file.filename,
+            resultados.append({
+                "filename": archivo.filename,
                 "success": True,
-                "message": f"¡Archivo '{file.filename}' importado y guardado correctamente!",
+                "message": f"¡Archivo '{archivo.filename}' importado y guardado correctamente!",
                 "metadata": {
-                    "filename": file.filename,
-                    "size_bytes": file_size,
-                    "rows": rows_count,
-                    "columns": columns_list,
-                    "preview": preview_data
+                    "filename": archivo.filename,
+                    "size_bytes": tamano_archivo,
+                    "rows": cantidad_filas,
+                    "columns": lista_columnas,
+                    "preview": vista_previa_datos
                 }
             })
             
         except Exception as e:
-            results.append({
-                "filename": file.filename,
+            resultados.append({
+                "filename": archivo.filename,
                 "success": False,
                 "error": f"Error al procesar el archivo: {str(e)}"
             })
             
-    success_count = sum(1 for r in results if r["success"])
+    conteo_exitosos = sum(1 for r in resultados if r["success"])
+    
+    if conteo_exitosos > 0:
+        limpiar_cache()
     
     return jsonify({
-        "success": success_count > 0,
-        "results": results,
-        "success_count": success_count,
-        "total_count": len(results)
+        "success": conteo_exitosos > 0,
+        "results": resultados,
+        "success_count": conteo_exitosos,
+        "total_count": len(resultados)
     }), 200
 
-from dashboard import obtener_data
+from dashboard import obtener_data, limpiar_cache
 
 @app.route('/api/dashboard', methods=['GET'])
-def get_dashboard():
+def obtener_dashboard():
+    import time
+    inicio_peticion = time.time()
     try:
+        import dashboard
+        encontro_en_cache = dashboard._CACHE_DASHBOARD is not None
+        
         datos = obtener_data(CLEAN_FILES_DIR)
+
+        fin_peticion = time.time()
+        print(f"[LOG] Endpoint /api/dashboard respondido en {fin_peticion - inicio_peticion:.2f} segundos. Origen: {'Caché' if encontro_en_cache else 'Procesamiento nuevo'}")
 
         return jsonify({
             "success": True,
@@ -126,6 +137,37 @@ def get_dashboard():
             "success": False,
             "error": str(e)
         }), 500
+
+@app.route('/api/mapa', methods=['GET'])
+def obtener_mapa():
+    try:
+        import dashboard
+        if hasattr(dashboard, '_CACHE_MAPA') and dashboard._CACHE_MAPA:
+            return dashboard._CACHE_MAPA, 200, {'Content-Type': 'text/html; charset=utf-8'}
+        else:
+            return "<html><body><p>Generando mapa... Refresque la página.</p></body></html>", 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return f"<html><body><p>Error cargando mapa: {str(e)}</p></body></html>", 500
+
+@app.route('/api/download/tabla-riesgo', methods=['GET'])
+def descargar_tabla_riesgo():
+    try:
+        import glob
+        directorio_compania = os.path.join(BASE_DIR, 'data', 'archivos_compañia')
+        archivos_riesgo = glob.glob(os.path.join(directorio_compania, 'tabla_riesg*.xlsx'))
+        
+        if archivos_riesgo:
+            ruta_archivo = archivos_riesgo[0]
+            nombre_archivo = os.path.basename(ruta_archivo)
+            return send_file(
+                ruta_archivo, 
+                as_attachment=True, 
+                download_name=nombre_archivo
+            )
+        else:
+            return jsonify({"error": "No se encontró el archivo de riesgo."}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 print("Iniciando servidor Flask...")
 
