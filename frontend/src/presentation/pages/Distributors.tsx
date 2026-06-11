@@ -40,46 +40,8 @@ interface DatosDistribuidores {
   };
 }
 
-const calcularProximoServicio = (horas: number): string => {
-  const intervalo = 300;
-  if (horas < intervalo) {
-    return `${intervalo} Hrs`;
-  }
-  const factor = Math.ceil(horas / intervalo);
-  const proximo = factor * intervalo;
-  if (proximo - horas <= 50) {
-    return `${proximo} Hrs (Por vencer)`;
-  }
-  return `${proximo} Hrs`;
-};
-
-const obtenerColorRiesgo = (riesgo: string): string => {
-  const r = riesgo.toLowerCase();
-  if (r === 'high' || r === 'crítico' || r === 'alto') return 'text-critical font-bold';
-  if (r === 'medium' || r === 'medio') return 'text-warning font-bold';
-  if (r === 'low' || r === 'bajo') return 'text-success font-bold';
-  return 'text-muted';
-};
-
-const obtenerClaseRiesgoBg = (riesgo: string): string => {
-  const r = riesgo.toLowerCase();
-  if (r === 'high') return 'bg-critical text-white';
-  if (r === 'medium') return 'bg-warning text-white';
-  if (r === 'low') return 'bg-neutral text-black';
-  return 'bg-neutral text-black';
-};
-
-const obtenerClaseEstatus = (estatus: string): string => {
-  const e = estatus.toLowerCase();
-  if (e === 'pendiente') return 'badge-warning';
-  if (e === 'cerradafuera' || e === 'cerrada fuera') return 'badge-primary';
-  if (e === 'cerrada') return 'badge-success';
-  if (e === 'porvencer') return 'badge-warning';
-  return 'badge-neutral';
-};
-
 // Paleta de colores Reds_r (de oscuro a claro)
-const obtenerColorRojo = (index: number, total: number): string => {
+const obtenerColorRojo = (index: number): string => {
   const palette = [
     '#67000d', '#a50f15', '#cb181d', '#ef3b2c', '#fb6a4a',
     '#fc9272', '#fcbba1', '#fee0d2', '#fff5f0', '#ffffff'

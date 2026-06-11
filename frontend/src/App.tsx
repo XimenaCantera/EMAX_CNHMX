@@ -22,8 +22,7 @@ function App() {
           <Route path="fuga-servicios" element={<FugaServicios />} />
           <Route path="riesgo-operativo" element={<RiesgoOperativo />} />
           <Route path="import" element={<ImportPage />} />
-          <Route path="action-plan" element={<ActionPlan />} />
-          <Route path="fuga-servicios" element={<FugaServicios />} />
+          <Route path="plan-meses" element={<ActionPlan />} />
         </Route>
       </Routes>
     </Router>

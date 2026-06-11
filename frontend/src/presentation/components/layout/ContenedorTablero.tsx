@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cargador } from '../common/Cargador';
+import { Cargador } from '../common/cargador';
 
 interface PropiedadesContenedorTablero {
   titulo: string;

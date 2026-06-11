@@ -10,7 +10,7 @@ const navItems = [
   { path: '/riesgo-operativo', icon: <AlertTriangle size={20} />, label: 'Riesgo operativo' },
   { path: '/monetization', icon: <DollarSign size={20} />, label: 'Monetización' },
   { path: '/distributors', icon: <Users size={20} />, label: 'Distribuidores' },
-  { path: '/fuga-data', icon: <ClipboardList size={20} />, label: 'Plan a meses' },
+  { path: '/plan-meses', icon: <ClipboardList size={20} />, label: 'Plan a meses' },
   { path: '/import', icon: <Upload size={20} />, label: 'Importar datos' },
 ];
 

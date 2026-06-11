@@ -7,26 +7,26 @@
   },
   {
     "Concepto": "Ingresos por recuperación de servicios fugados (I-01)",
-    "EscenarioMinimo": 1500000,
-    "EscenarioMaximo": 8860000,
+    "EscenarioMinimo": 1412301,
+    "EscenarioMaximo": 8818868,
     "Notas": "Basado en campaña de lealtad y conversión"
   },
   {
     "Concepto": "Ahorro en garantía + servicios preventivos (I-02)",
-    "EscenarioMinimo": 1500000,
-    "EscenarioMaximo": 7500000,
+    "EscenarioMinimo": 1480638,
+    "EscenarioMaximo": 7482676,
     "Notas": "Mitigación de fallas catastróficas"
   },
   {
     "Concepto": "Ingresos por campaña Pareto (I-03)",
-    "EscenarioMinimo": 2000000,
-    "EscenarioMaximo": 15000000,
+    "EscenarioMinimo": 2107061,
+    "EscenarioMaximo": 14858456,
     "Notas": "Estrategia comercial en el Top 200 de oportunidad"
   },
   {
     "Concepto": "Total de impacto en 9 meses",
     "EscenarioMinimo": 5000000,
-    "EscenarioMaximo": 31360000,
+    "EscenarioMaximo": 31160000,
     "Notas": "Suma automática de beneficios"
   },
   {
@@ -38,7 +38,7 @@
   {
     "Concepto": "Retorno de Inversión (ROI)",
     "EscenarioMinimo": 0.42857143,
-    "EscenarioMaximo": 11.544,
+    "EscenarioMaximo": 11.464,
     "Notas": "Fórmula: (Impacto Total - Inversión) / Inversión"
   }
 ]
