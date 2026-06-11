@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from './FugaServicios.module.css';
-import { Wrench, AlertTriangle, Target, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Wrench, AlertTriangle, Target, Clock, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 import { SinDatos } from '../components/common/SinDatos';
 
@@ -29,6 +29,7 @@ interface FugaData {
 export const FugaServicios: React.FC = () => {
   const [data, setData] = useState<FugaData | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedEstatus, setSelectedEstatus] = useState<string>('Todos');
   const ROWS_PER_PAGE = 15;
 
   useEffect(() => {
@@ -61,8 +62,13 @@ export const FugaServicios: React.FC = () => {
     }
   };
 
-  const totalPages = Math.ceil(data.table.length / ROWS_PER_PAGE);
-  const currentTableData = data.table.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+  const filteredTableData = data.table.filter(row => {
+    if (selectedEstatus === 'Todos') return true;
+    return row['Estatus'] === selectedEstatus;
+  });
+
+  const totalPages = Math.ceil(filteredTableData.length / ROWS_PER_PAGE);
+  const currentTableData = filteredTableData.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -103,6 +109,8 @@ export const FugaServicios: React.FC = () => {
 
     return buttons;
   };
+
+  const estatusOptions = ['Todos', ...Array.from(new Set(data.table.map(row => row['Estatus'] as string).filter(Boolean)))];
 
   return (
     <div className={styles.container}>
@@ -153,7 +161,38 @@ export const FugaServicios: React.FC = () => {
                 <tr>
                   <th>Unidad</th>
                   <th>Distribuidor</th>
-                  <th>Estatus</th>
+                  <th>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span>Estatus</span>
+                      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                        <ChevronDown size={14} style={{ color: '#4b5563', pointerEvents: 'none' }} />
+                        <select
+                          value={selectedEstatus}
+                          onChange={(e) => {
+                            setSelectedEstatus(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            opacity: 0,
+                            cursor: 'pointer',
+                            border: 'none',
+                            outline: 'none',
+                            margin: 0,
+                            padding: 0
+                          }}
+                        >
+                          {estatusOptions.map(opt => (
+                            <option key={opt} value={opt} style={{ color: '#374151' }}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </th>
                   <th>Horas de retraso</th>
                   <th>Frecuencia de servicio</th>
                   <th>Acción recomendada</th>
