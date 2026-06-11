@@ -72,7 +72,12 @@ export const ActionPlan: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.mainTitle}>Avance para Plan de Acción</h1>
+      <div className="page-header" style={{ marginBottom: '20px' }}>
+        <h1 style={{ margin: 0 }}>Avance para Plan de Acción</h1>
+        <p className="text-muted" style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '6px' }}>
+          Este plan muestra las acciones de mantenimientos preventivos programadas a 3, 6 y 9 meses. Ayuda a optimizar los tiempos de respuesta y el abastecimiento estratégico de servicios.
+        </p>
+      </div>
 
       {/* Sección de KPIs Financieros */}
       <div className={styles.kpiContainer}>

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import './Dashboard.css';
 import { SinDatos } from '../components/common/SinDatos';
-//Usamos lucide-react para poner íconos en las tarjetas del dashboard.
+
 
 interface TopOportunidad {
   unidad: string;
@@ -83,7 +83,7 @@ export const Dashboard: React.FC = () => {
     cargarDatosDashboard();
   }, []);
 
-  // Función para mostrar valores de dinero
+  // Dar formato de moneda
   const formatMoney = (valor: number) => {
     return `$${valor.toLocaleString('es-MX')}`;
   };
@@ -140,7 +140,9 @@ export const Dashboard: React.FC = () => {
       <div className="page-header flex justify-between items-center">
         <div>
           <h1>Panel de Monetización CNH</h1>
-          <p className="text-muted">Servicios con mayor oportunidad técnico y económica</p>
+          <p className="text-muted" style={{ marginTop: '6px', fontSize: '0.875rem', color: '#6b7280' }}>
+            Este panel muestra una información general de la oportunidad de mercado que hay en refacciones y servicios, ayudando a priorizar a los distribuidores y unidades con mayor oportunidad técnica y económica.
+          </p>
         </div>
       </div>
 
@@ -310,9 +312,10 @@ export const Dashboard: React.FC = () => {
               {data.recomendaciones?.pendientes_desc || ''}
             </p>
 
-            <button className="btn btn-neutral w-full mt-lg">
+
+            <a href="/distributors" className="btn btn-neutral w-full mt-lg text-center">
               Revisar solicitudes
-            </button>
+            </a>
           </div>
 
           <div className="card action-card">

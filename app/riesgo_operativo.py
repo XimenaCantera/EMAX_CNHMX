@@ -12,15 +12,14 @@ from sklearn.cluster import KMeans
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CLEAN_FILES_DIR = os.path.join(BASE_DIR, 'data', 'ArchivosLimpios')
 
-# =============================================================
-# Sistema de caché para evitar reprocesar en cada request
-# =============================================================
+# Guardar en caché para no procesar cada vez
 _cache_riesgo = {
     'mtime': None,         
     'maint_df': None,   
     'red_alert_summary': None,
     'red_alert_summary_sorted': None,
     'top_10_oldest_alerts': None,
+    'df_alerts_detail': None,
     'fig_risk_matrix': None,
     'fig_oldest_alerts': None,
     'unidades_criticas': None,
@@ -37,12 +36,12 @@ def _cargar_y_procesar_datos(maint_path):
 
     maint_df = pd.read_excel(maint_path)
 
-    # Procesamiento de datos
+    # Procesar los datos
     maint_df['delay_vs_service_interval'] = maint_df['ACTUAL'] - maint_df['SERVICIO']
     status_risk_mapping = {'Cerrada': 0, 'PorVencer': 1, 'EnProceso': 1, 'Abierta': 1, 'Pendiente': 2, 'CerradaFuera': 2}
     maint_df['overdue_risk'] = maint_df['ESTATUS'].map(status_risk_mapping).fillna(0)
 
-    # Filtrado de estatus
+    # Filtrar por estatus
     relevant_status = ['Pendiente', 'Cerrado', 'CerradaFuera']
     df_filtered_anova = maint_df[maint_df['ESTATUS'].isin(relevant_status)].copy()
     df_filtered_anova = df_filtered_anova.dropna(subset=['ACTUAL', 'HRMTRO', 'SERVICIO', 'ESTATUS'])
@@ -66,7 +65,7 @@ def _cargar_y_procesar_datos(maint_path):
         (df_filtered_anova['SEVERITY_LEVEL'] == 'High')
     ]
 
-    # KPIs
+    # Métricas principales
     unidades_criticas = red_alert_units['ALIAS'].nunique()
     registros_criticos = len(red_alert_units)
 
@@ -81,7 +80,7 @@ def _cargar_y_procesar_datos(maint_path):
     red_alert_summary['Porcentaje en Alerta Roja'] = (red_alert_summary['Unidades en Alerta Roja'] / red_alert_summary['Total Unidades']) * 100
     red_alert_summary_sorted = red_alert_summary.sort_values(by='Unidades en Alerta Roja', ascending=False)
 
-    # Gráfico de burbujas
+    # Gráfica de burbujas
     fig_risk_matrix = px.scatter(
         red_alert_summary,
         x='Porcentaje en Alerta Roja',
@@ -107,7 +106,7 @@ def _cargar_y_procesar_datos(maint_path):
         showlegend=False, height=350
     )
 
-    # Top 10 unidades críticas por antigüedad
+    # Las 10 unidades más críticas por antigüedad
     df_alerts = maint_df[maint_df['ESTATUS'].isin(['Pendiente', 'CerradaFuera'])].copy()
     df_alerts['FECHA'] = pd.to_datetime(df_alerts['FECHA'], errors='coerce')
     df_alerts.dropna(subset=['FECHA'], inplace=True)
@@ -117,6 +116,10 @@ def _cargar_y_procesar_datos(maint_path):
     oldest_alerts_per_unit = df_alerts.groupby('ALIAS')['antiguedad_alerta'].min().reset_index()
     oldest_alerts_per_unit = pd.merge(oldest_alerts_per_unit, df_alerts[['ALIAS', 'ESTATUS']].drop_duplicates(), on='ALIAS', how='left')
     top_10_oldest_alerts = oldest_alerts_per_unit.sort_values(by='antiguedad_alerta', ascending=False).head(10)
+
+    # Detalle de alertas por unidad
+    df_alerts_detail = df_alerts.sort_values(by='antiguedad_alerta', ascending=False).drop_duplicates(subset=['ALIAS']).head(6)
+    df_alerts_detail['FECHA_str'] = df_alerts_detail['FECHA'].dt.strftime('%Y-%m-%d')
 
     fig_oldest_alerts = px.bar(
         top_10_oldest_alerts,
@@ -136,7 +139,7 @@ def _cargar_y_procesar_datos(maint_path):
         coloraxis_showscale=False, height=500
     )
 
-    # K-Means clustering
+    # Clasificación con K-Means
     features_kmeans = ['delay_vs_service_interval', 'overdue_risk']
     X_kmeans = maint_df[features_kmeans].dropna().copy()
 
@@ -184,6 +187,7 @@ def _cargar_y_procesar_datos(maint_path):
         'red_alert_summary': red_alert_summary,
         'red_alert_summary_sorted': red_alert_summary_sorted,
         'top_10_oldest_alerts': top_10_oldest_alerts,
+        'df_alerts_detail': df_alerts_detail,
         'fig_risk_matrix': fig_risk_matrix,
         'fig_oldest_alerts': fig_oldest_alerts,
         'unidades_criticas': unidades_criticas,
@@ -202,7 +206,7 @@ def _obtener_datos_cacheados(maint_path):
         print("[RIESGO] Sirviendo desde caché (instantáneo)")
         return _cache_riesgo
 
-    # Reprocesar y cachear
+    # Procesar y guardar en caché
     resultado = _cargar_y_procesar_datos(maint_path)
     resultado['mtime'] = current_mtime
     _cache_riesgo = resultado
@@ -210,7 +214,7 @@ def _obtener_datos_cacheados(maint_path):
 
 
 def init_riesgo_operativo(server):
-    # Inicializar la aplicación de Dash conectada al servidor Flask
+    # Iniciar Dash en Flask
     app_dash = dash.Dash(
         __name__,
         server=server,
@@ -230,7 +234,7 @@ def init_riesgo_operativo(server):
         if not os.path.exists(maint_path):
             return html.Div([
                 html.Div([
-                    # Mensaje si no hay archivos disponibles
+                    # Mensaje por si no hay datos
                     html.H3("Faltan archivos de datos", 
                         style={'color': '#ef4444', 'margin-bottom': '12px', 'font-weight': '600'}),
                     html.P("Por favor, ve a la sección de 'Importar datos' y sube el archivo limpio de mantenimientos.")
@@ -242,65 +246,74 @@ def init_riesgo_operativo(server):
             ], style={'background-color': '#f8fafc', 'min-height': '100vh', 'padding': '20px'})
 
         try:
-            # Usar datos cacheados (solo reprocesa si el archivo cambió)
+            # Usar caché si el archivo no ha cambiado
             datos = _obtener_datos_cacheados(maint_path)
             maint_df = datos['maint_df']
             dist_cluster_df = datos['dist_cluster_df']
             unidades_criticas = datos['unidades_criticas']
             registros_criticos = datos['registros_criticos']
-            red_alert_summary_sorted = datos['red_alert_summary_sorted']
+            df_alerts_detail = datos['df_alerts_detail']
             fig_risk_matrix = datos['fig_risk_matrix']
             fig_oldest_alerts = datos['fig_oldest_alerts']
             
-            # Renderizar la tabla HTML de los 6 principales distribuidores
+            # Tabla de las 6 alertas más viejas
             table_header = [
                 html.Tr([
-                    html.Th("Distribuidor", style={'text-align': 'left', 'padding': '12px 8px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '1px solid #e2e8f0'}),
-                    html.Th("Unidades en Alerta Roja", style={'text-align': 'right', 'padding': '12px 8px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '1px solid #e2e8f0'}),
-                    html.Th("Total de unidades", style={'text-align': 'right', 'padding': '12px 8px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '1px solid #e2e8f0'}),
-                    html.Th("Porcentaje entre todas las unidades", style={'text-align': 'right', 'padding': '12px 8px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '1px solid #e2e8f0'})
+                    html.Th("Unidad", style={'text-align': 'left', 'padding': '12px 8px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '1px solid #e2e8f0', 'font-size': '13px'}),
+                    html.Th("Distribuidor", style={'text-align': 'left', 'padding': '12px 8px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '1px solid #e2e8f0', 'font-size': '13px'}),
+                    html.Th("Fecha Alerta", style={'text-align': 'center', 'padding': '12px 8px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '1px solid #e2e8f0', 'font-size': '13px'}),
+                    html.Th("Antigüedad Alerta", style={'text-align': 'right', 'padding': '12px 8px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '1px solid #e2e8f0', 'font-size': '13px'}),
+                    html.Th("Estatus", style={'text-align': 'center', 'padding': '12px 8px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '1px solid #e2e8f0', 'font-size': '13px'})
                 ], style={'background-color': '#f8fafc'})
             ]
             
             table_rows = []
-            for idx, row in red_alert_summary_sorted.head(6).iterrows():
+            for idx, row in df_alerts_detail.iterrows():
                 table_rows.append(html.Tr([
-                    html.Td(row['DISTRIBUIDOR'], style={'padding': '12px 8px', 'border-bottom': '1px solid #f1f5f9', 'font-weight': '500', 'color': '#1e293b'}),
-                    html.Td(f"{int(row['Unidades en Alerta Roja'])}", style={'text-align': 'right', 'padding': '12px 8px', 'border-bottom': '1px solid #f1f5f9', 'color': '#334155'}),
-                    html.Td(f"{int(row['Total Unidades'])}", style={'text-align': 'right', 'padding': '12px 8px', 'border-bottom': '1px solid #f1f5f9', 'color': '#334155'}),
-                    html.Td(f"{row['Porcentaje en Alerta Roja']:.2f}%", style={'text-align': 'right', 'padding': '12px 8px', 'border-bottom': '1px solid #f1f5f9', 'font-weight': '500', 'color': '#0f172a'})
+                    html.Td(row['ALIAS'], style={'padding': '12px 8px', 'border-bottom': '1px solid #f1f5f9', 'font-weight': '500', 'color': '#1e293b', 'font-size': '12px'}),
+                    html.Td(row['DISTRIBUIDOR'], style={'padding': '12px 8px', 'border-bottom': '1px solid #f1f5f9', 'color': '#334155', 'font-size': '12px'}),
+                    html.Td(row['FECHA_str'], style={'text-align': 'center', 'padding': '12px 8px', 'border-bottom': '1px solid #f1f5f9', 'color': '#334155', 'font-size': '12px'}),
+                    html.Td(f"{int(row['antiguedad_alerta'])} días", style={'text-align': 'right', 'padding': '12px 8px', 'border-bottom': '1px solid #f1f5f9', 'font-weight': '600', 'color': '#b91c1c', 'font-size': '12px'}),
+                    html.Td(
+                        html.Span(row['ESTATUS'], style={
+                            'padding': '2px 8px', 'border-radius': '9999px', 'font-size': '11px', 'font-weight': '500',
+                            'background-color': '#fef2f2' if row['ESTATUS'] == 'Pendiente' else '#eff6ff',
+                            'color': '#ef4444' if row['ESTATUS'] == 'Pendiente' else '#3b82f6'
+                        }),
+                        style={'text-align': 'center', 'padding': '12px 8px', 'border-bottom': '1px solid #f1f5f9'}
+                    )
                 ]))
                 
             table_body = [html.Tbody(table_rows)]
-
-
-
+ 
+ 
+ 
             cluster_table_header = [
                 html.Tr([
                     html.Th('Distribuidor', 
                         style={
                             'text-align': 'left', 'padding': '10px 8px', 'font-weight': '600', 
-                            'color': '#475569', 'border-bottom': '1px solid #e2e8f0'
+                            'color': '#475569', 'border-bottom': '1px solid #e2e8f0', 'font-size': '13px'
                             }),
                     html.Th('Riesgo Bajo', 
                         style={
                             'text-align': 'right', 'padding': '10px 8px', 'font-weight': '600',
-                            'color': '#20235C', 'border-bottom': '1px solid #e2e8f0'
+                            'color': '#20235C', 'border-bottom': '1px solid #e2e8f0', 'font-size': '13px'
                             }),
                     html.Th('Riesgo Medio', 
                         style={
                             'text-align': 'right', 'padding': '10px 8px', 'font-weight': '600', 
-                            'color': '#B45309', 'border-bottom': '1px solid #e2e8f0'
+                            'color': '#B45309', 'border-bottom': '1px solid #e2e8f0', 'font-size': '13px'
                             }),
                     html.Th('Riesgo Alto', 
                         style={
                             'text-align': 'right', 'padding': '10px 8px', 'font-weight': '600', 
-                            'color': '#A32428', 'border-bottom': '1px solid #e2e8f0'
+                            'color': '#A32428', 'border-bottom': '1px solid #e2e8f0', 'font-size': '13px'
                             }),
                     html.Th('Total Unidades', 
                         style={
                             'text-align': 'right', 'padding': '10px 8px', 'font-weight': '600', 
-                            'color': '#475569', 'border-bottom': '1px solid #e2e8f0'
+                            'color': '#475569', 'border-bottom': '1px solid #e2e8f0', 'font-size': '13px'
                             })
                 ], style={'background-color': '#f8fafc'})
             ]
@@ -313,29 +326,29 @@ def init_riesgo_operativo(server):
                     html.Td(row['DISTRIBUIDOR'], 
                         style={
                             'padding': '10px 8px', 'border-bottom': '1px solid #f1f5f9', 
-                            'font-weight': '500', 'color': '#1e293b'
+                            'font-weight': '500', 'color': '#1e293b', 'font-size': '12px'
                             }),
                     html.Td(str(int(row['Riesgo Bajo'])), 
                         style={
                             'text-align': 'right', 'padding': '10px 8px', 
-                            'border-bottom': '1px solid #f1f5f9', 'color': '#20235C'
+                            'border-bottom': '1px solid #f1f5f9', 'color': '#20235C', 'font-size': '12px'
                             }),
                     html.Td(str(int(row['Riesgo Medio'])), 
                         style={
                             'text-align': 'right', 'padding': '10px 8px', 
-                            'border-bottom': '1px solid #f1f5f9', 'color': '#B45309'
+                            'border-bottom': '1px solid #f1f5f9', 'color': '#B45309', 'font-size': '12px'
                             }),
                     html.Td(str(alto), 
                         style={
                             'text-align': 'right', 'padding': '10px 8px', 
                             'border-bottom': '1px solid #f1f5f9', 
                             'font-weight': '700', 'color': '#A32428', 
-                            'background-color': highlight
+                            'background-color': highlight, 'font-size': '12px'
                             }),
                     html.Td(str(int(row['Total'])), 
                         style={
                             'text-align': 'right', 'padding': '10px 8px', 
-                            'border-bottom': '1px solid #f1f5f9', 'color': '#334155'
+                            'border-bottom': '1px solid #f1f5f9', 'color': '#334155', 'font-size': '12px'
                             })
                 ]))
 
@@ -414,7 +427,7 @@ def init_riesgo_operativo(server):
                 html.Div([
                     # Columna izquierda
                     html.Div([
-                        # Tarjeta con Gráfico de Burbujas
+                        # Gráfica de burbujas
                         html.Div([
                             dcc.Graph(figure=fig_risk_matrix, config={'displayModeBar': False})
                         ], style={
@@ -425,7 +438,7 @@ def init_riesgo_operativo(server):
                         }),
                         
                         html.Div([
-                            html.H3("Top distribuidores con Unidades en Alerta Roja", 
+                            html.H3("Detalle de Alertas más Antiguas (Equipos Críticos)", 
                                 style={
                                     'font-size': '16px', 
                                     'font-weight': '600', 
@@ -450,7 +463,7 @@ def init_riesgo_operativo(server):
                     
                     # Columna derecha
                     html.Div([
-                        # Gráfico de Barras
+                        # Gráfica de barras
                         html.Div([
                             dcc.Graph(figure=fig_oldest_alerts, config={'displayModeBar': False})
                         ], style={
@@ -462,30 +475,27 @@ def init_riesgo_operativo(server):
                     ], style={'flex': '2', 'min-width': '350px'})
                 ], style={'display': 'flex', 'gap': '24px', 'flex-wrap': 'wrap'}),
 
-                # ── SECCIÓN K-MEANS 
-                html.H3('Segmentación de Riesgo Operativo',
+                # Sección K-Means 
+                html.H3('Clasificación de Prioridad Operativa',
                     style={
                         'font-size': '16px', 'font-weight': '700', 'color': '#0f172a',
                         'margin': '32px 0 16px 0', 'font-family': 'Outfit, sans-serif',
                         'border-top': '1px solid #e2e8f0', 'padding-top': '24px'
                     }),
 
-                html.P([
-                    'K-Means con ',
-                    html.Strong('K = 3'),
-                    ' clusters óptimos. ',
-                    html.Strong('Silhouette Score: 0.6422'),
-                    '. Se agrupan las unidades según su retraso en horas y su riesgo de estatus.'
-                ], style={'font-size': '13px', 'color': '#64748b', 'margin': '0 0 20px 0', 'font-family': 'Outfit, sans-serif'}),
+                html.P(
+                    'Esta clasificación agrupa las unidades de cada distribuidor basándose en sus horas de retraso acumuladas y el estado de sus alertas vigentes. Ayuda a identificar rápidamente qué distribuidores tienen la mayor concentración de equipos críticos para priorizar visitas de soporte, optimizar recursos y coordinar campañas preventivas.',
+                    style={'font-size': '13px', 'color': '#64748b', 'margin': '0 0 20px 0', 'font-family': 'Outfit, sans-serif', 'line-height': '1.5'}
+                ),
 
                 # Tabla distribución de clusters por distribuidor
                 html.Div([
-                    html.H3('Distribución de Clusters por Distribuidor',
+                    html.H3('Distribución de Equipos en Riesgo por Distribuidor',
                         style={
                             'font-size': '15px', 'font-weight': '600', 'color': '#0f172a',
                             'margin': '0 0 14px 0', 'font-family': 'Outfit, sans-serif'
                         }),
-                    html.P('Ordenado por mayor cantidad de unidades en Riesgo Alto (Cluster 2)',
+                    html.P('Ordenado por mayor cantidad de unidades en Riesgo Alto',
                         style={'font-size': '12px', 'color': '#94a3b8', 'margin': '0 0 12px 0'}),
                     html.Div([
                         html.Table(

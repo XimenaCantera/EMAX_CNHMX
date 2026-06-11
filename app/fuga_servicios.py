@@ -28,7 +28,7 @@ def cargar_datos_mantenimiento():
         return pd.DataFrame()
 
 def init_fuga_servicios(server):
-    # Endpoint de la API REST
+    # Ruta de la API
     @server.route('/api/fuga-data', methods=['GET'])
     def get_fuga_data():
         df_mantenimientos = cargar_datos_mantenimiento()
@@ -44,7 +44,7 @@ def init_fuga_servicios(server):
         
         df_fuga = df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente'])]
         
-        # Aplicando compensación matemática (+31 fugas y +34 totales)
+        # Sumar 31 fugas y 34 totales para ajustar
         servicios_en_fuga = len(df_fuga) + 31
         total_servicios = len(df_mantenimientos) + 34
         
@@ -105,23 +105,42 @@ def init_fuga_servicios(server):
             "table": records
         })
 
-    # Inicializar la aplicación Dash conectada al servidor Flask principal
-    app_dash = dash.Dash(
+    from plantillas_dash import PLANTILLA_HTML_CARGANDO
+
+    color_discrete_map = {
+        'Pendiente': '#A32428',       # Rojo CNH
+        'CerradaFuera': '#5B6695',    # Azul Pizarra
+        'Cerrada': '#20235C',         # Azul Marino CNH
+        'PorVencer': '#D97706',       # Miel / Alerta
+        'EnProceso': '#9CA3AF',       # Gris Muted
+        'Abierta': '#D1D5DB',         # Gris Claro
+        'Desconocido': '#4B5563'      # Gris Oscuro
+    }
+
+    style_box = {
+        'backgroundColor': 'white', 
+        'borderRadius': '16px', 
+        'marginBottom': '20px', 
+        'border': '1px solid #e5e7eb',
+        'padding': '12px',
+        'boxShadow': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.05)'
+    }
+
+    # --- APP DASH LATERAL ---
+    app_dash_side = dash.Dash(
         __name__,
         server=server,
-        url_base_pathname='/dash/fuga/',
+        url_base_pathname='/dash/fuga/side/',
         external_stylesheets=['https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap']
     )
-    
-    from plantillas_dash import PLANTILLA_HTML_CARGANDO
-    app_dash.index_string = PLANTILLA_HTML_CARGANDO
+    app_dash_side.index_string = PLANTILLA_HTML_CARGANDO
 
-    def serve_layout():
-        from flask import request
+    def serve_layout_side():
         df_mantenimientos = cargar_datos_mantenimiento()
         if df_mantenimientos.empty:
             return html.Div([
                 html.Div([
+                    # Mensaje por si no hay datos
                     html.H3("Faltan archivos de datos", style={'color': '#ef4444', 'margin-bottom': '12px', 'font-weight': '600'}),
                     html.P("Por favor, ve a la sección de 'Importar datos' y sube el archivo limpio de mantenimientos.")
                 ], style={
@@ -130,14 +149,6 @@ def init_fuga_servicios(server):
                     'font-family': 'Outfit, sans-serif', 'text-align': 'center'
                 })
             ], style={'background-color': '#f8fafc', 'min-height': '100vh', 'padding': '20px'})
-
-        color_discrete_map = {
-            'Pendiente': '#fca5a5',
-            'Cerrada Fuera': '#93c5fd',
-            'Por vencer': '#fde047',
-            'Cerrada': '#86efac',
-            'EnProceso': '#c4b5fd'
-        }
 
         fig_bar = px.histogram(df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente'])], x="DISTRIBUIDOR", title="Servicios en fuga por distribuidor", color_discrete_sequence=['#ef4444'])
         fig_bar.update_layout(
@@ -157,6 +168,36 @@ def init_fuga_servicios(server):
             margin=dict(l=10, r=10, t=40, b=20), height=420
         )
 
+        return html.Div([
+            html.Div([dcc.Graph(figure=fig_bar, config={'displayModeBar': False})], style=style_box),
+            html.Div([dcc.Graph(figure=fig_pie, config={'displayModeBar': False})], style={**style_box, 'marginBottom': '0px'})
+        ], style={'backgroundColor': 'transparent', 'padding': '5px', 'font-family': 'Outfit, sans-serif'})
+
+    app_dash_side.layout = serve_layout_side
+
+    # --- APP DASH INFERIOR ---
+    app_dash_bottom = dash.Dash(
+        __name__,
+        server=server,
+        url_base_pathname='/dash/fuga/bottom/',
+        external_stylesheets=['https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap']
+    )
+    app_dash_bottom.index_string = PLANTILLA_HTML_CARGANDO
+
+    def serve_layout_bottom():
+        df_mantenimientos = cargar_datos_mantenimiento()
+        if df_mantenimientos.empty:
+            return html.Div([
+                html.Div([
+                    html.H3("Faltan archivos de datos", style={'color': '#ef4444', 'margin-bottom': '12px', 'font-weight': '600'}),
+                    html.P("Por favor, ve a la sección de 'Importar datos' y sube el archivo limpio de mantenimientos.")
+                ], style={
+                    'padding': '30px', 'background-color': '#ffffff', 'border-radius': '12px',
+                    'box-shadow': '0 4px 6px -1px rgba(0,0,0,0.1)', 'max-width': '600px', 'margin': '100px auto',
+                    'font-family': 'Outfit, sans-serif', 'text-align': 'center'
+                })
+            ], style={'background-color': '#f8fafc', 'min-height': '100vh', 'padding': '20px'})
+
         fig_hist = px.histogram(df_mantenimientos, x="retraso_horas", title="Distribución de retraso en horas", color_discrete_sequence=['#3f46e5'], range_x=[-500, 6000])
         fig_hist.update_layout(
             plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
@@ -167,41 +208,9 @@ def init_fuga_servicios(server):
             yaxis=dict(gridcolor='#e1e8f0', linecolor='#cbd5e1', zeroline=False)
         )
 
-        style_box = {
-            'backgroundColor': 'white', 
-            'borderRadius': '16px', 
-            'marginBottom': '20px', 
-            'border': '1px solid #e5e7eb',
-            'padding': '12px',
-            'boxShadow': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.05)'
-        }
+        return html.Div([
+            html.Div([dcc.Graph(figure=fig_hist, config={'displayModeBar': False})], style={**style_box, 'marginBottom': '0px'})
+        ], style={'backgroundColor': 'transparent', 'padding': '5px', 'font-family': 'Outfit, sans-serif'})
 
-        from flask import has_request_context
-        chart_type = None
-        if has_request_context():
-            chart_type = request.args.get('chart')
-            if not chart_type and request.referrer:
-                from urllib.parse import urlparse, parse_qs
-                try:
-                    parsed = urlparse(request.referrer)
-                    chart_type = parse_qs(parsed.query).get('chart', [None])[0]
-                except Exception:
-                    pass
-        if chart_type == 'bottom':
-            return html.Div([
-                html.Div([dcc.Graph(figure=fig_hist, config={'displayModeBar': False})], style={**style_box, 'marginBottom': '0px'})
-            ], style={'backgroundColor': 'transparent', 'padding': '5px', 'font-family': 'Outfit, sans-serif'})
-        elif chart_type == 'side':
-            return html.Div([
-                html.Div([dcc.Graph(figure=fig_bar, config={'displayModeBar': False})], style=style_box),
-                html.Div([dcc.Graph(figure=fig_pie, config={'displayModeBar': False})], style={**style_box, 'marginBottom': '0px'})
-            ], style={'backgroundColor': 'transparent', 'padding': '5px', 'font-family': 'Outfit, sans-serif'})
-        else:
-            return html.Div([
-                html.Div([dcc.Graph(figure=fig_hist, config={'displayModeBar': False})], style=style_box),
-                html.Div([dcc.Graph(figure=fig_bar, config={'displayModeBar': False})], style=style_box),
-                html.Div([dcc.Graph(figure=fig_pie, config={'displayModeBar': False})], style={**style_box, 'marginBottom': '0px'})
-            ], style={'backgroundColor': 'transparent', 'padding': '5px', 'font-family': 'Outfit, sans-serif'})
-
-    app_dash.layout = serve_layout
-    return app_dash
+    app_dash_bottom.layout = serve_layout_bottom
+    return server

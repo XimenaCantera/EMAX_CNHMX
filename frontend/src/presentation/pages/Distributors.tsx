@@ -41,7 +41,7 @@ interface DatosDistribuidores {
   };
 }
 
-// Paleta de colores Reds_r (de oscuro a claro)
+// Tonos de rojo
 const obtenerColorRojo = (index: number): string => {
   const palette = [
     '#67000d', '#a50f15', '#cb181d', '#ef3b2c', '#fb6a4a',
@@ -94,6 +94,9 @@ export const Distributors: React.FC = () => {
     <div className="distributors-page">
       <div className="page-header" style={{ marginBottom: '20px' }}>
         <h1>Distribuidores</h1>
+        <p className="text-muted" style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '6px' }}>
+          Este panel evalúa el desempeño de cada distribuidor en la atención de alertas y volumen total de unidades asignadas. Ayuda a identificar los distribuidores rezagados y zonas de alta prioridad operativa.
+        </p>
       </div>
 
       <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
@@ -207,7 +210,7 @@ export const Distributors: React.FC = () => {
             {/* Barras */}
             {datos.top_distribuidores.map((d, i) => {
               const maxVal = Math.max(...datos.top_distribuidores.map(x => x.unidades_alerta_roja)) || 1;
-              // Ajustamos maxVal para que las barras se vean bien (ej. 1200 si el max es 1100)
+              // Ajustamos maxVal para que las barras se vean bien
               const chartMax = Math.ceil(maxVal / 200) * 200;
               const alturaPct = (d.unidades_alerta_roja / chartMax) * 100;
 

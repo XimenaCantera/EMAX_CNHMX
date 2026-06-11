@@ -49,7 +49,7 @@ export const ImportPage: React.FC = () => {
       const file = files[i];
       const extension = file.name.split('.').pop()?.toLowerCase();
       if (extension === 'xlsx') {
-        // Evitar duplicados en la lista de seleccionados
+        // No agregar duplicados
         if (!selectedFiles.some(f => f.name === file.name)) {
           validFiles.push(file);
         }
@@ -107,7 +107,7 @@ export const ImportPage: React.FC = () => {
 
     const formData = new FormData();
     selectedFiles.forEach(file => {
-      formData.append('files', file); // Usa la llave 'files' para el backend estructurado
+      formData.append('files', file);
     });
 
     try {
@@ -146,7 +146,7 @@ export const ImportPage: React.FC = () => {
           setErrorMsg(`Error en la carga: ${failures || data.error || "Ningún archivo pudo ser procesado."}`);
         }
 
-        // Buscar el índice del primer archivo exitoso para previsualizarlo
+        // Buscar el primer archivo que se subió bien
         const firstSuccessIdx = data.results.findIndex((r: any) => r.success);
         if (firstSuccessIdx !== -1) {
           setActivePreviewIndex(firstSuccessIdx);

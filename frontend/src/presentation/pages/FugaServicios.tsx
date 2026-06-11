@@ -116,6 +116,9 @@ export const FugaServicios: React.FC = () => {
     <div className={styles.container}>
       <div className="page-header" style={{ marginBottom: '20px' }}>
         <h1>Fuga de servicios</h1>
+        <p className="text-muted" style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '6px' }}>
+          Este panel analiza la pérdida de servicios preventivos no realizados en la red oficial midiendo el nivel de retrasos de servicio en unidades activas, dando información clave para coordinar la recuperación de clientes y mejorar la retención de postventa.
+        </p>
       </div>
       <div className={styles.kpiContainer}>
         <div className={styles.kpiCard}>
@@ -231,7 +234,7 @@ export const FugaServicios: React.FC = () => {
 
         <div className={styles.chartsSection}>
           <iframe
-            src="http://127.0.0.1:5000/dash/fuga/?chart=side"
+            src="http://localhost:5000/dash/fuga/side/"
             className={styles.dashIframe}
             title="Dash Graphs"
           ></iframe>
@@ -240,7 +243,7 @@ export const FugaServicios: React.FC = () => {
 
       <div className={styles.bottomChartSection}>
         <iframe
-          src="http://127.0.0.1:5000/dash/fuga/?chart=bottom"
+          src="http://localhost:5000/dash/fuga/bottom/"
           className={styles.dashIframeBottom}
           title="Distribution Graph"
         ></iframe>
