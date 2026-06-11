@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Colors */
+  /* Colores */
   --color-primary: #10123C;
   --color-primary-light: #20235C;
   --color-secondary: #A32428;
@@ -15,7 +15,7 @@
   --color-text-muted: #6B7280;
   --color-border: #E5E7EB;
   
-  /* Status Colors */
+  /* Colores de Estatus */
   --color-critical: #FEE2E2;
   --color-critical-text: #B91C1C;
   --color-warning: #FEF3C7;
@@ -23,11 +23,11 @@
   --color-success: #D1FAE5;
   --color-success-text: #047857;
 
-  /* Typography */
+  /* Tipografía */
   --font-heading: 'Hanken Grotesk', sans-serif;
   --font-body: 'Inter', sans-serif;
 
-  /* Spacing */
+  /* Espaciado */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 1rem;
@@ -35,7 +35,7 @@
   --space-xl: 2rem;
   --space-2xl: 3rem;
 
-  /* Borders & Shadows */
+  /* Bordes y Sombras */
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
@@ -79,7 +79,7 @@ button {
   background: none;
 }
 
-/* Base Utilities */
+/* Utilidades Base */
 .card {
   background-color: var(--color-surface);
   border-radius: var(--radius-lg);
@@ -103,7 +103,7 @@ button {
 .font-medium { font-weight: 500; }
 .text-muted { color: var(--color-text-muted); }
 
-/* Buttons */
+/* Botones */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -140,7 +140,7 @@ button {
   background-color: var(--color-neutral);
 }
 
-/* Badge */
+/* Etiquetas / Badges */
 .badge {
   display: inline-flex;
   align-items: center;

@@ -36,7 +36,7 @@ def get_fuga_data():
     df_table = df_mantenimientos[['ALIAS', 'DISTRIBUIDOR', 'ESTATUS', 'retraso_horas', 'Frecuencia de servicio', 'Acción recomendada']].copy()
     df_table.columns = ['Unidad', 'Distribuidor', 'Estatus', 'Horas de retraso', 'Frecuencia de servicio', 'Acción recomendada']
     
-    df_fuga = df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente', 'CerradaFuera', 'Cerrada Fuera'])]
+    df_fuga = df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente'])]
     
     # Aplicando compensación matemática (+31 fugas y +34 totales) para igualar la base de datos maestra
     # Esto asegura que el valor base sea 18,279 y 76.47%, pero que siga sumando/restando si el Excel cambia.
@@ -65,7 +65,7 @@ def get_fuga_data():
         dist_group = df_mantenimientos.groupby('DISTRIBUIDOR')
         for dist, group in dist_group:
             n_i = len(group)
-            x_i = len(group[group['ESTATUS'].isin(['Pendiente', 'CerradaFuera', 'Cerrada Fuera'])])
+            x_i = len(group[group['ESTATUS'].isin(['Pendiente'])])
             if n_i == 0:
                 continue
             p_i = x_i / n_i
@@ -104,7 +104,7 @@ def get_fuga_data():
 def get_dashboard_data():
     try:
         # Extraer el distribuidor con más fugas
-        df_fuga = df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente', 'CerradaFuera', 'Cerrada Fuera'])]
+        df_fuga = df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente'])]
         
         # Encontrar el distribuidor más afectado
         distribuidor_counts = df_fuga['DISTRIBUIDOR'].value_counts()
@@ -174,7 +174,7 @@ if not df_mantenimientos.empty:
         title_font=dict(size=18, family="sans-serif", color="black")
     )
 
-    fig_bar = px.histogram(df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente', 'Cerrada Fuera'])], x="DISTRIBUIDOR", title="Servicios en fuga por distribuidor", color_discrete_sequence=['#ef4444'])
+    fig_bar = px.histogram(df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente'])], x="DISTRIBUIDOR", title="Servicios en fuga por distribuidor", color_discrete_sequence=['#ef4444'])
     fig_bar.update_layout(
         margin=dict(l=20, r=20, t=40, b=120), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis_tickangle=-90, height=350,
         title_font=dict(size=18, family="sans-serif", color="black")

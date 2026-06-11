@@ -1,6 +1,6 @@
 .container {
   padding: 2rem;
-  background-color: #f3f4f6; /* Matching the subtle gray background of the screenshot */
+  background-color: #f3f4f6; /* Igual al fondo gris sutil del diseño */
   min-height: 100vh;
 }
 
@@ -107,7 +107,7 @@
   border: 1px solid #d1d5db;
   cursor: default;
   margin-top: 0.125rem;
-  accent-color: #374151; /* Dark gray for checked state as in screenshot */
+  accent-color: #374151; /* Gris oscuro para el estado marcado como en el diseño */
 }
 
 .taskText {
@@ -123,7 +123,7 @@
 }
 
 .rightSection {
-  flex: 1.5; /* Takes up a bit more space for the progress bar */
+  flex: 1.5; /* Ocupa un poco más de espacio para la barra de progreso */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -159,7 +159,7 @@
 
 .progressBarFill {
   height: 100%;
-  background-color: #d1d5db; /* Light gray fill */
+  background-color: #d1d5db; /* Relleno gris claro */
   border-radius: 9999px;
   position: absolute;
   left: 0;

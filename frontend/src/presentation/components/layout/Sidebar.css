@@ -56,9 +56,9 @@
 }
 
 .nav-item.active {
-  background-color: #3b4e76; /* grayish blue highlight matching screenshot */
+  background-color: #3b4e76; /* resalte azul grisáceo igual al diseño */
   color: white;
-  border-right: 4px solid #38bdf8; /* light blue right border */
+  border-right: 4px solid #38bdf8; /* borde derecho azul claro */
 }
 
 .sidebar-footer {
