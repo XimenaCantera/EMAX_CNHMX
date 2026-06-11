@@ -217,6 +217,9 @@ def init_riesgo_operativo(server):
         url_base_pathname='/dash/riesgo/',
         external_stylesheets=['https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap']
     )
+    
+    from plantillas_dash import PLANTILLA_HTML_CARGANDO
+    app_dash.index_string = PLANTILLA_HTML_CARGANDO
 
     from plantillas_dash import PLANTILLA_HTML_CARGANDO
     app_dash.index_string = PLANTILLA_HTML_CARGANDO
@@ -242,12 +245,121 @@ def init_riesgo_operativo(server):
             # Usar datos cacheados (solo reprocesa si el archivo cambió)
             datos = _obtener_datos_cacheados(maint_path)
             
-            fig_risk_matrix = datos['fig_risk_matrix']
-            fig_oldest_alerts = datos['fig_oldest_alerts']
-            unidades_criticas = datos['unidades_criticas']
-            registros_criticos = datos['registros_criticos']
-            red_alert_summary_sorted = datos['red_alert_summary_sorted']
-            dist_cluster_df = datos['dist_cluster_df']
+            # Procesamiento de datos
+            maint_df['delay_vs_service_interval'] = maint_df['ACTUAL'] - maint_df['SERVICIO']
+            status_risk_mapping = {'Cerrada': 0, 'PorVencer': 1, 'EnProceso': 1, 'Abierta': 1, 'Pendiente': 2, 'CerradaFuera': 2}
+            maint_df['overdue_risk'] = maint_df['ESTATUS'].map(status_risk_mapping).fillna(0)
+            
+            # Filtrado de estatus
+            relevant_status = ['Pendiente', 'Cerrado', 'CerradaFuera']
+            df_filtered_anova = maint_df[maint_df['ESTATUS'].isin(relevant_status)].copy()
+            df_filtered_anova = df_filtered_anova.dropna(subset=['ACTUAL', 'HRMTRO', 'SERVICIO', 'ESTATUS'])
+            
+            df_filtered_anova['score_operativo'] = (
+                df_filtered_anova['ACTUAL'] +
+                df_filtered_anova['HRMTRO'] +
+                df_filtered_anova['SERVICIO']
+            ) / 3
+            
+            df_filtered_anova['SEVERITY_LEVEL'] = pd.qcut(
+                df_filtered_anova['score_operativo'],
+                q=3,
+                labels=['Low', 'Medium', 'High'],
+                duplicates='drop'
+            )
+            
+            red_alert_units = df_filtered_anova[
+                (df_filtered_anova['ESTATUS'].isin(['Pendiente', 'CerradaFuera'])) &
+                (df_filtered_anova['overdue_risk'] == 2.0) &
+                (df_filtered_anova['SEVERITY_LEVEL'] == 'High')
+            ]
+            
+            # KPIs dinamicos
+            unidades_criticas = red_alert_units['ALIAS'].nunique()
+            registros_criticos = len(red_alert_units)
+                
+            # Agrupar por distribuidor
+            red_alert_units_per_dist = red_alert_units.groupby('DISTRIBUIDOR')['ALIAS'].nunique().reset_index()
+            red_alert_units_per_dist.rename(columns={'ALIAS': 'Unidades en Alerta Roja'}, inplace=True)
+            
+            total_units_per_dist = maint_df.groupby('DISTRIBUIDOR')['ALIAS'].nunique().reset_index()
+            total_units_per_dist.rename(columns={'ALIAS': 'Total Unidades'}, inplace=True)
+            
+            red_alert_summary = pd.merge(red_alert_units_per_dist, total_units_per_dist, on='DISTRIBUIDOR', how='left')
+            red_alert_summary['Porcentaje en Alerta Roja'] = (red_alert_summary['Unidades en Alerta Roja'] / red_alert_summary['Total Unidades']) * 100
+            
+            red_alert_summary_sorted = red_alert_summary.sort_values(by='Unidades en Alerta Roja', ascending=False)
+            
+            # Matriz de Riesgo por Distribuidor (Bubble Chart)
+            fig_risk_matrix = px.scatter(
+                red_alert_summary,
+                x='Porcentaje en Alerta Roja',
+                y='Unidades en Alerta Roja',
+                size='Total Unidades',
+                color='DISTRIBUIDOR',
+                color_discrete_sequence=['#991b1b', '#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fee2e2'],
+                hover_name='DISTRIBUIDOR',
+                title='Matriz de riesgo por distribuidor',
+                labels={
+                    'Porcentaje en Alerta Roja': 'Porcentaje de Unidades en Alerta Roja',
+                    'Unidades en Alerta Roja': 'Número de Unidades en Alerta Roja'
+                },
+                size_max=60
+            )
+            
+            fig_risk_matrix.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font_family='Outfit, sans-serif',
+                font_color='#1e293b',
+                title_font_size=18,
+                title_font_color='#0f172a',
+                title_font_family='Outfit, sans-serif',
+                margin=dict(l=40, r=40, t=60, b=40),
+                xaxis=dict(gridcolor='#e2e8f0', linecolor='#cbd5e1', zeroline=False),
+                yaxis=dict(gridcolor='#e2e8f0', linecolor='#cbd5e1', zeroline=False),
+                showlegend=False,
+                height=350
+            )
+            
+            # Top 10 Unidades Críticas por Antigüedad (Bar Chart)
+            df_alerts = maint_df[maint_df['ESTATUS'].isin(['Pendiente', 'CerradaFuera'])].copy()
+            df_alerts['FECHA'] = pd.to_datetime(df_alerts['FECHA'], errors='coerce')
+            df_alerts.dropna(subset=['FECHA'], inplace=True)
+            
+            current_date = pd.to_datetime('2026-06-08')
+            df_alerts['antiguedad_alerta'] = (current_date - df_alerts['FECHA']).dt.days
+            oldest_alerts_per_unit = df_alerts.groupby('ALIAS')['antiguedad_alerta'].min().reset_index()
+            oldest_alerts_per_unit = pd.merge(oldest_alerts_per_unit, df_alerts[['ALIAS', 'ESTATUS']].drop_duplicates(), on='ALIAS', how='left')
+            top_10_oldest_alerts = oldest_alerts_per_unit.sort_values(by='antiguedad_alerta', ascending=False).head(10)
+            
+            fig_oldest_alerts = px.bar(
+                top_10_oldest_alerts,
+                x='ALIAS',
+                y='antiguedad_alerta',
+                title='Top 10 unidades críticas por antigüedad de alerta',
+                labels={'antiguedad_alerta': 'Antigüedad de la Alerta (Días)', 'ALIAS': 'Unidad ALIAS'},
+                color='antiguedad_alerta',
+                color_continuous_scale='Reds_r'
+            )
+            
+            fig_oldest_alerts.update_xaxes(categoryorder='total descending')
+            fig_oldest_alerts.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font_family='Outfit, sans-serif',
+                font_color='#1e293b',
+                title_font_size=18,
+                title_font_color='#0f172a',
+                title_font_family='Outfit, sans-serif',
+                margin=dict(l=40, r=40, t=60, b=40),
+                xaxis=dict(gridcolor='#e2e8f0', linecolor='#cbd5e1', zeroline=False),
+                yaxis=dict(gridcolor='#e2e8f0', linecolor='#cbd5e1', zeroline=False),
+                coloraxis_showscale=False,
+                height=500
+            )
+            
+            # Renderizar la tabla HTML de los 6 principales distribuidores
             table_header = [
                 html.Tr([
                     html.Th("Distribuidor", style={'text-align': 'left', 'padding': '12px 8px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '1px solid #e2e8f0'}),

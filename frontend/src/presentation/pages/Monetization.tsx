@@ -5,11 +5,11 @@ export const VistaMonetizacion: React.FC = () => {
   return (
     <ContenedorTablero
       titulo="Monetización"
-      iframeSrc="http://127.0.0.1:5001/dash/monetizacion/"
+      iframeSrc="http://127.0.0.1:5000/dash/monetizacion/"
       iframeTitle="Monetización Dash"
       textoCargando="Cargando panel de monetización..."
       colorFondoCargador="#f8fafc"
-      altura="1150px"
+      altura="1338px"
       esContenedorCompleto={false}
     />
   );

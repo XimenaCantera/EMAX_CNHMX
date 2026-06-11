@@ -5,9 +5,10 @@ export const RiesgoOperativo: React.FC = () => {
   return (
     <ContenedorTablero
       titulo="Riesgo Operativo"
-      iframeSrc="http://127.0.0.1:5001/dash/riesgo/"
+      iframeSrc="http://127.0.0.1:5000/dash/riesgo/"
       iframeTitle="Riesgo Operativo Dash"
       textoCargando="Cargando panel de riesgo operativo..."
+      colorFondoCargador="#ffffff"
       altura="100%"
       esContenedorCompleto={true}
     />
