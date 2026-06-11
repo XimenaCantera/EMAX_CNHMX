@@ -9,7 +9,7 @@ export const VistaMonetizacion: React.FC = () => {
       iframeTitle="Monetización Dash"
       textoCargando="Cargando panel de monetización..."
       colorFondoCargador="#f8fafc"
-      altura="1150px"
+      altura="1338px"
       esContenedorCompleto={false}
     />
   );
