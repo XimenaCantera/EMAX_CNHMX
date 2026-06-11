@@ -211,7 +211,7 @@ export const Distributors: React.FC = () => {
                     style={{
                       width: '80%',
                       height: `${alturaPct}%`,
-                      backgroundColor: obtenerColorRojo(i, datos.top_distribuidores.length),
+                      backgroundColor: obtenerColorRojo(i),
                       border: '1px solid rgba(0,0,0,0.1)'
                     }}
                     title={`${d.distribuidor}: ${d.unidades_alerta_roja}`}
