@@ -1,4 +1,7 @@
-Se espera colocar los notebooks utilizados para nuestro Proceso de Análisis: 
+En esta carpeta se colocan los cuadernos Jupyter (.ipynb) que utiliamos para el proceso analítico y desarrollo:
 
--> Archivos ".ipynb" que muestren el proceso de Preparación de Datos (Limpieza y Transformación)
--> El Entrenamiento y Evaluación de Modelos (Métricas).
+- limpieza.ipynb: Cuaderno de limpieza y transformación inicial de datos en bruto a limpios.
+- eda.ipynb: Análisis exploratorio de datos (EDA) para identificar correlaciones y patrones.
+- Evidencia_4.ipynb: Reporte e investigación correspondiente a los modelos predictivos.
+- Evidencia_5.ipynb: Documentación y cuaderno con pruebas de generación de gráficos usando seaborn y Dash.
+- nuevas_graficas.ipynb: Planeación de gráficas y visualizaciones adicionales de riesgo.

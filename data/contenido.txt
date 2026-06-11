@@ -1,3 +1,7 @@
-Se espera colocar en esta carpeta nuestros Datos Limpios:
+En esta carpeta se colocan los datos que el proyecto necesita para el análisis de datos provenientes de la importación:
 
-Ficheros CSV o data lake resultante del proceso de limpieza (cleaned_data.csv).
+- ArchivosOriginales/: Contiene las bases de datos originales que nos dio CNH sin limpiezas.
+- ArchivosLimpios/: Después de que el sistema valide, renombre y fusione los datos importados se guardan en esta carpeta.
+- archivos_compañia/: Contiene archivos complementarios exportados.
+- graficas_hechas/: Reportes y archivos adicionales generados.
+- Modelo Financiero Aftermarket CNH MX.xlsx: Archivo base para los cálculos de impacto comercial y monetización.

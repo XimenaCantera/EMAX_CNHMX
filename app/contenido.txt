@@ -1,3 +1,9 @@
-En esta carpeta se coloca la Aplicación Web: 
+En esta carpeta colocamos el código correspondiente al backend (API REST Flask e integración de aplicaciones Dash):
 
--> Código fuente de la aplicación (e.g., app.py, assets).
+- app.py: Punto de entrada principal del servidor Flask.
+- importador.py: Lógica de validación de nombres, comprobación de columnas y fusión acumulativa de los archivos importados.
+- dashboard.py: Lógica analítica del tablero de inicio, procesamiento de datos de mantenimientos/unidades y caché de visualización.
+- fuga_servicios.py: Lógica predictiva para el módulo de fuga de servicios.
+- monetizacion.py: Lógica interactiva de cálculo financiero para el módulo de monetización.
+- riesgo_operativo.py: Lógica para el módulo de riesgo operativo.
+- plantillas_dash.py: Plantilla de cargar página reutilizable.
