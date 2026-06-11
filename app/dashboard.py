@@ -188,11 +188,13 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
             
             # Crear figura
             colores_riesgo = {"Crítico": "#20235C", "Alto": "#B45309"}
+            escalaPuntosMapa = 6
             fig = px.scatter_mapbox(
                 mapa_prioritario,
                 lat="Latitud",
                 lon="Longitud",
                 size="unidades",
+                size_max=escalaPuntosMapa,
                 color="Nivel de riesgo",
                 color_discrete_map=colores_riesgo,
                 category_orders={"Nivel de riesgo": ["Crítico", "Alto"]},
