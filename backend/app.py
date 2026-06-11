@@ -198,5 +198,11 @@ init_riesgo_operativo(app)
 from monetizacion import inicializar_monetizacion
 inicializar_monetizacion(app)
 
+# =============================================================
+# Integrar Dash e API de Fuga de Servicios
+# =============================================================
+from fuga_servicios import init_fuga_servicios
+init_fuga_servicios(app)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

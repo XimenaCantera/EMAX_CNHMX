@@ -1,0 +1,159 @@
+.container {
+  padding: 2rem;
+  background-color: #f3f4f6;
+  min-height: 100vh;
+}
+
+.kpiContainer {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.kpiCard {
+  background-color: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.kpiIcon {
+  color: #1e3a8a;
+}
+
+.kpiInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.kpiTitle {
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin: 0;
+  font-weight: 500;
+}
+
+.kpiValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #000;
+  margin: 0;
+}
+
+.contentLayout {
+  display: flex;
+  gap: 2rem;
+  align-items: stretch;
+}
+
+.tableSection {
+  flex: 1.1;
+  background-color: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  flex-grow: 1;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.dataTable th {
+  padding: 1rem;
+  font-weight: 600;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dataTable td {
+  padding: 1rem;
+  font-size: 0.875rem;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.estatusPendiente { background-color: #fef2f2; color: #ef4444; }
+.estatusCerradaFuera { background-color: #eff6ff; color: #3b82f6; }
+.estatusPorVencer { background-color: #fefce8; color: #eab308; }
+.estatusCerrada { background-color: #f0fdf4; color: #22c55e; }
+.estatusDefault { background-color: #f3f4f6; color: #374151; }
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  font-weight: 700;
+  color: #111827;
+  font-size: 1.25rem;
+}
+
+.pageActive {
+  background-color: #111827;
+  color: white;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.pageInactive {
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chartsSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 1400px;
+}
+
+.dashIframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  min-height: 1400px;
+}
+
+.loading {
+  padding: 3rem;
+  text-align: center;
+  font-size: 1.5rem;
+  color: #4b5563;
+}
+
+.kpiTooltip {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0 0;
+  cursor: help;
+  font-weight: 500;
+}

@@ -7,8 +7,8 @@ import { Distributors } from './presentation/pages/Distributors';
 import { UnitDetail } from './presentation/pages/UnitDetail';
 import { FugaServicios } from './presentation/pages/FugaServicios';
 import { RiesgoOperativo } from './presentation/pages/RiesgoOperativo';
-import { PlanMeses } from './presentation/pages/PlanMeses';
 import { ImportPage } from './presentation/pages/ImportPage';
+import { ActionPlan } from './presentation/components/ActionPlan/ActionPlan';
 
 function App() {
   return (
@@ -21,8 +21,9 @@ function App() {
           <Route path="unit" element={<UnitDetail />} />
           <Route path="fuga-servicios" element={<FugaServicios />} />
           <Route path="riesgo-operativo" element={<RiesgoOperativo />} />
-          <Route path="plan-meses" element={<PlanMeses />} />
           <Route path="import" element={<ImportPage />} />
+          <Route path="action-plan" element={<ActionPlan />} />
+          <Route path="fuga-servicios" element={<FugaServicios />} />
         </Route>
       </Routes>
     </Router>

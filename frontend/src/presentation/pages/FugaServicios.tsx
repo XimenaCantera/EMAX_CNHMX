@@ -1,117 +1,192 @@
-import React from 'react';
-import { Wrench, AlertTriangle, TrendingDown, Search } from 'lucide-react';
-import './Dashboard.css';
+import React, { useState, useEffect } from 'react';
+import styles from './FugaServicios.module.css';
+import { Wrench, AlertTriangle, Target, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+
+interface DistributorAnalysis {
+  distribuidor: string;
+  total_servicios: number;
+  fugas: number;
+  pct_fuga: number;
+  z_score: number;
+  significant_alert: boolean;
+}
+
+interface FugaData {
+  kpis: {
+    servicios_fuga: string;
+    pct_pendiente_cerrada_fuera: number;
+    ci_lower?: number;
+    ci_upper?: number;
+    meta_depuracion: string;
+    retraso_promedio: number;
+  };
+  distribuidores_analisis?: DistributorAnalysis[];
+  table: any[];
+}
 
 export const FugaServicios: React.FC = () => {
+  const [data, setData] = useState<FugaData | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ROWS_PER_PAGE = 15;
+
+  useEffect(() => {
+    fetch('http://127.0.0.1:5000/api/fuga-data')
+      .then(res => res.json())
+      .then(d => setData(d))
+      .catch(err => console.error(err));
+  }, []);
+
+  if (!data) {
+    return <div className={styles.loading}>Cargando datos híbridos...</div>;
+  }
+
+  const renderEstatus = (estatus: string) => {
+    switch (estatus) {
+      case 'Pendiente':
+        return <span className={`${styles.badge} ${styles.estatusPendiente}`}>Pendiente</span>;
+      case 'Cerrada Fuera':
+        return <span className={`${styles.badge} ${styles.estatusCerradaFuera}`}>Cerrada Fuera</span>;
+      case 'Por vencer':
+        return <span className={`${styles.badge} ${styles.estatusPorVencer}`}>Por vencer</span>;
+      case 'Cerrada':
+        return <span className={`${styles.badge} ${styles.estatusCerrada}`}>Cerrada</span>;
+      default:
+        return <span className={`${styles.badge} ${styles.estatusDefault}`}>{estatus}</span>;
+    }
+  };
+
+  const totalPages = Math.ceil(data.table.length / ROWS_PER_PAGE);
+  const currentTableData = data.table.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const renderPaginationButtons = () => {
+    const buttons = [];
+    const maxVisiblePages = 4;
+
+    for (let i = 1; i <= Math.min(maxVisiblePages, totalPages); i++) {
+      buttons.push(
+        <div
+          key={i}
+          className={currentPage === i ? styles.pageActive : styles.pageInactive}
+          onClick={() => handlePageChange(i)}
+        >
+          {i}
+        </div>
+      );
+    }
+
+    if (totalPages > maxVisiblePages) {
+      if (totalPages > maxVisiblePages + 1) {
+        buttons.push(<div key="dots" className={styles.pageInactive}>...</div>);
+      }
+      buttons.push(
+        <div
+          key={totalPages}
+          className={currentPage === totalPages ? styles.pageActive : styles.pageInactive}
+          onClick={() => handlePageChange(totalPages)}
+        >
+          {totalPages}
+        </div>
+      );
+    }
+
+    return buttons;
+  };
+
   return (
-    <div className="dashboard-page">
-      <div className="page-header">
-        <h1>Fuga de Servicios</h1>
-        <p className="text-muted">Monitoreo de unidades que realizan servicios fuera del distribuidor autorizado</p>
-      </div>
-
-      <div className="kpi-grid">
-        <div className="card kpi-card kpi-critical">
-          <div className="kpi-header">
-            <span className="kpi-title">TASA DE FUGA DE SERVICIO</span>
-            <TrendingDown size={18} className="text-critical" />
+    <div className={styles.container}>
+      <div className={styles.kpiContainer}>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiIcon}><Wrench size={24} /></div>
+          <div className={styles.kpiInfo}>
+            <p className={styles.kpiTitle}>Servicios en fuga</p>
+            <h2 className={styles.kpiValue}>{data.kpis.servicios_fuga}</h2>
           </div>
-          <div className="kpi-value text-critical">24.8%</div>
-          <p className="text-xs text-muted mt-sm">+1.2% respecto al mes anterior</p>
         </div>
-
-        <div className="card kpi-card">
-          <div className="kpi-header">
-            <span className="kpi-title">UNIDADES EN RIESGO DE FUGA</span>
-            <AlertTriangle size={18} className="text-warning" />
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiIcon}><AlertTriangle size={24} /></div>
+          <div className={styles.kpiInfo}>
+            <p className={styles.kpiTitle}>% Pendiente</p>
+            <h2 className={styles.kpiValue}>{data.kpis.pct_pendiente_cerrada_fuera}%</h2>
+            {data.kpis.ci_lower !== undefined && data.kpis.ci_upper !== undefined && (
+              <p className={styles.kpiTooltip} title="Intervalo de confianza al 95%">
+                (IC95%: {data.kpis.ci_lower}% - {data.kpis.ci_upper}%)
+              </p>
+            )}
           </div>
-          <div className="kpi-value text-warning">148</div>
-          <p className="text-xs text-muted mt-sm">Horas de servicio próximas o vencidas</p>
         </div>
-
-        <div className="card kpi-card">
-          <div className="kpi-header">
-            <span className="kpi-title">PÉRDIDA POTENCIAL ESTIMADA</span>
-            <span className="text-muted font-bold">$1.1M</span>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiIcon}><Target size={24} /></div>
+          <div className={styles.kpiInfo}>
+            <p className={styles.kpiTitle}>Meta de depuración</p>
+            <h2 className={styles.kpiValue}>{data.kpis.meta_depuracion}</h2>
           </div>
-          <div className="kpi-value">$1,124,500</div>
-          <p className="text-xs text-muted mt-sm">Valor estimado de refacciones y mano de obra</p>
         </div>
-
-        <div className="card kpi-card">
-          <div className="kpi-header">
-            <span className="kpi-title">DISTRIBUIDOR MÁS AFECTADO</span>
-            <Wrench size={18} className="text-muted" />
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiIcon}><Clock size={24} /></div>
+          <div className={styles.kpiInfo}>
+            <p className={styles.kpiTitle}>Retraso promedio en unidades frecuentes</p>
+            <h2 className={styles.kpiValue}>{data.kpis.retraso_promedio}</h2>
           </div>
-          <div className="kpi-value" style={{ fontSize: '1.5rem', lineHeight: '2rem' }}>AgroNorte S.A.</div>
-          <p className="text-xs text-muted mt-sm">34 unidades con rezago de servicio</p>
         </div>
       </div>
-
-      <div className="main-grid">
-        <div className="card table-card" style={{ gridColumn: 'span 2' }}>
-          <div className="card-header-flex">
-            <h3 className="card-title">Alertas de Fuga de Servicio Activas</h3>
-            <div className="search-bar" style={{ width: '250px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '0.25rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Search size={14} className="text-muted" />
-              <input type="text" placeholder="Filtrar alertas..." style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.825rem' }} />
-            </div>
+      <div className={styles.contentLayout}>
+        <div className={styles.tableSection}>
+          <h3 style={{ marginBottom: '1rem', color: '#111827', fontSize: '1.125rem' }}>Detalle de Unidades en Fuga</h3>
+          <div className={styles.tableWrapper}>
+            <table className={styles.dataTable}>
+              <thead>
+                <tr>
+                  <th>Unidad</th>
+                  <th>Distribuidor</th>
+                  <th>Estatus</th>
+                  <th>Horas de retraso</th>
+                  <th>Frecuencia de servicio</th>
+                  <th>Acción recomendada</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentTableData.map((row, idx) => (
+                  <tr key={idx}>
+                    <td>{row['Unidad']}</td>
+                    <td>{row['Distribuidor']}</td>
+                    <td>{renderEstatus(row['Estatus'])}</td>
+                    <td>{row['Horas de retraso']}</td>
+                    <td>{row['Frecuencia de servicio']}</td>
+                    <td>{row['Acción recomendada']}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+          <div className={styles.pagination}>
+            <ChevronLeft
+              size={24}
+              color={currentPage === 1 ? "#d1d5db" : "#111827"}
+              style={{ cursor: currentPage === 1 ? 'default' : 'pointer' }}
+              onClick={() => handlePageChange(currentPage - 1)}
+            />
+            {renderPaginationButtons()}
+            <ChevronRight
+              size={24}
+              color={currentPage === totalPages ? "#d1d5db" : "#111827"}
+              style={{ cursor: currentPage === totalPages ? 'default' : 'pointer' }}
+              onClick={() => handlePageChange(currentPage + 1)}
+            />
+          </div>
+        </div>
 
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>UNIDAD</th>
-                <th>DISTRIBUIDOR</th>
-                <th>HORAS TOTALES</th>
-                <th>ÚLTIMO REGISTRO</th>
-                <th>STATUS FUGA</th>
-                <th>ACCIÓN RECOMENDADA</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="font-bold">TRAC-9011</td>
-                <td>AgroNorte S.A.</td>
-                <td>1,420 hrs</td>
-                <td>Hace 45 días</td>
-                <td><span className="badge badge-critical">Fuga Confirmada</span></td>
-                <td>
-                  <button className="btn btn-outline text-xs" style={{ padding: '0.25rem 0.5rem' }}>Contactar Cliente</button>
-                </td>
-              </tr>
-              <tr>
-                <td className="font-bold">HARV-3104</td>
-                <td>Equipos Centro</td>
-                <td>615 hrs</td>
-                <td>Hace 12 días</td>
-                <td><span className="badge badge-warning">Riesgo Alto</span></td>
-                <td>
-                  <button className="btn btn-primary text-xs" style={{ padding: '0.25rem 0.5rem' }}>Agendar Preventivo</button>
-                </td>
-              </tr>
-              <tr>
-                <td className="font-bold">TRAC-5561</td>
-                <td>AgroSur</td>
-                <td>2,110 hrs</td>
-                <td>Hace 30 días</td>
-                <td><span className="badge badge-warning">Riesgo Alto</span></td>
-                <td>
-                  <button className="btn btn-primary text-xs" style={{ padding: '0.25rem 0.5rem' }}>Enviar Oferta Repuestos</button>
-                </td>
-              </tr>
-              <tr>
-                <td className="font-bold">EXCA-012</td>
-                <td>ConstruMaq</td>
-                <td>890 hrs</td>
-                <td>Hace 60 días</td>
-                <td><span className="badge badge-critical">Fuga Confirmada</span></td>
-                <td>
-                  <button className="btn btn-outline text-xs" style={{ padding: '0.25rem 0.5rem' }}>Llamar Distribuidor</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div className={styles.chartsSection}>
+          <iframe
+            src="http://127.0.0.1:5000/dash/fuga/"
+            className={styles.dashIframe}
+            title="Dash Graphs"
+          ></iframe>
         </div>
       </div>
     </div>
