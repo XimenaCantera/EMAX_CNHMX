@@ -53,6 +53,16 @@ def obtener_dashboard():
         import dashboard
         encontro_en_cache = dashboard._CACHE_DASHBOARD is not None
         
+        # Verificar si existen los archivos antes de continuar
+        ruta_mantenimientos = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_mantenimientos.xlsx')
+        ruta_unidades = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_unidades.xlsx')
+        if not os.path.exists(ruta_mantenimientos) or not os.path.exists(ruta_unidades):
+            return jsonify({
+                "success": False,
+                "no_data": True,
+                "error": "No existen datos cargados."
+            }), 200
+
         datos = obtener_data(DIRECTORIO_ARCHIVOS_LIMPIOS)
 
         fin_peticion = time.time()
@@ -63,6 +73,12 @@ def obtener_dashboard():
             "data": datos
         }), 200
 
+    except FileNotFoundError as e:
+        return jsonify({
+            "success": False,
+            "no_data": True,
+            "error": "No existen datos cargados."
+        }), 200
     except Exception as e:
         return jsonify({
             "success": False,
@@ -72,6 +88,14 @@ def obtener_dashboard():
 @app.route('/api/distribuidores', methods=['GET'])
 def obtener_distribuidores_api():
     try:
+        ruta_mantenimientos = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_mantenimientos.xlsx')
+        if not os.path.exists(ruta_mantenimientos):
+            return jsonify({
+                "success": False,
+                "no_data": True,
+                "error": "No existen datos cargados."
+            }), 200
+
         from dashboard import obtener_datos_distribuidores
         datos = obtener_datos_distribuidores(DIRECTORIO_ARCHIVOS_LIMPIOS)
         
@@ -80,6 +104,12 @@ def obtener_distribuidores_api():
             "data": datos
         }), 200
 
+    except FileNotFoundError as e:
+        return jsonify({
+            "success": False,
+            "no_data": True,
+            "error": "No existen datos cargados."
+        }), 200
     except Exception as e:
         return jsonify({
             "success": False,

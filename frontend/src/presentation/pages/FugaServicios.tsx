@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import styles from './FugaServicios.module.css';
 import { Wrench, AlertTriangle, Target, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 
+import { SinDatos } from '../components/common/SinDatos';
+
 interface DistributorAnalysis {
   distribuidor: string;
   total_servicios: number;
@@ -38,6 +40,10 @@ export const FugaServicios: React.FC = () => {
 
   if (!data) {
     return <div className={styles.loading}>Cargando datos híbridos...</div>;
+  }
+
+  if ((data as any).no_data) {
+    return <SinDatos />;
   }
 
   const renderEstatus = (estatus: string) => {

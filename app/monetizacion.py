@@ -80,12 +80,23 @@ def inicializar_monetizacion(servidor_flask):
                 })
             ], style={'background-color': '#f8fafc', 'min-height': '100vh', 'padding': '20px'})
 
+        global _CACHE_MONETIZACION
         try:
+            mtime_sum = os.path.getmtime(ruta_mantenimientos) + os.path.getmtime(ruta_unidades) + os.path.getmtime(ruta_poblacion)
+        except Exception:
+            mtime_sum = 0
+
+        if _CACHE_MONETIZACION.get('mtime_sum') == mtime_sum and 'layout' in _CACHE_MONETIZACION:
+            print("[MONETIZACION] Sirviendo layout desde caché (instantáneo)")
+            return _CACHE_MONETIZACION['layout']
+
+        try:
+            print("[MONETIZACION] Procesando datos y entrenando modelos XGBoost...")
             # Carga de datos desde los archivos
             df_mantenimientos = pd.read_excel(ruta_mantenimientos)
             df_reporte = pd.read_excel(ruta_unidades)
             df_poblacion = pd.read_excel(ruta_poblacion)
-
+            
             # Calcular retrasos en mantenimientos
             df_mantenimientos['delay_vs_service_interval'] = df_mantenimientos['ACTUAL'] - df_mantenimientos['SERVICIO']
             
@@ -270,7 +281,6 @@ def inicializar_monetizacion(servidor_flask):
 
 
             # Guardar resultados en caché global
-            global _CACHE_MONETIZACION
             _CACHE_MONETIZACION = {
                 'df_monetizacion_final': df_monetizacion_final,
                 'df_mantenimientos_activos': df_mantenimientos_activos
@@ -439,7 +449,7 @@ def inicializar_monetizacion(servidor_flask):
             # RETORNO DEL DISEÑO CON PESTAÑAS (TABS)
             # ================================================
             
-            return html.Div([
+            diseno_final = html.Div([
                 dcc.Tabs(id="tabs-monetizacion", value='tab-analitico', children=[
                     # Pestaña 1: Análisis de Oportunidades
                     dcc.Tab(label='Análisis de Oportunidades', value='tab-analitico', style={
@@ -628,6 +638,10 @@ def inicializar_monetizacion(servidor_flask):
                     ])
                 ], style={'font-family': 'Outfit, sans-serif', 'font-size': '0.9rem'})
             ], style={'padding': '16px 0px', 'background-color': '#f8fafc', 'min-height': '100vh', 'font-family': 'Outfit, sans-serif'})
+
+            _CACHE_MONETIZACION['layout'] = diseno_final
+            _CACHE_MONETIZACION['mtime_sum'] = mtime_sum
+            return diseno_final
 
         except Exception as error_proceso:
             import traceback

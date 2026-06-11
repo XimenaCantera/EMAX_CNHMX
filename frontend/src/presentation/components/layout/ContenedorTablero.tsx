@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Cargador } from '../common/cargador';
+import { SinDatos } from '../common/SinDatos';
 
 interface PropiedadesContenedorTablero {
   titulo: string;
@@ -21,8 +22,24 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
   esContenedorCompleto = false
 }) => {
   const [estaCargando, establecerEstaCargando] = useState(true);
+  const [dataExists, setDataExists] = useState<boolean | null>(null);
 
   useEffect(() => {
+    const checkData = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:5000/api/dashboard');
+        const json = await res.json();
+        if (json.no_data) {
+          setDataExists(false);
+        } else {
+          setDataExists(true);
+        }
+      } catch (err) {
+        setDataExists(true); // fallback to try loading
+      }
+    };
+    checkData();
+
     const alRecibirMensaje = (evento: MessageEvent) => {
       // Verificar si el mensaje proviene de nuestro tablero Dash
       if (evento.data && evento.data.type === 'DASH_LOADED') {
@@ -63,6 +80,21 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
     overflow: 'hidden',
     flex: esContenedorCompleto ? 1 : 'none'
   };
+
+  if (dataExists === false) {
+    return <SinDatos />;
+  }
+
+  if (dataExists === null) {
+    return (
+      <div style={estiloContenedorPagina}>
+        <Cargador 
+          texto={textoCargando} 
+          colorFondo={colorFondoCargador} 
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={estiloContenedorPagina}>

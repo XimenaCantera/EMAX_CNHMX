@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, FileText, Users, Tractor } from 'lucide-react';
 import './Distributors.css';
+import { SinDatos } from '../components/common/SinDatos';
 
 interface TopDistribuidor {
   distribuidor: string;
@@ -62,6 +63,8 @@ export const Distributors: React.FC = () => {
 
         if (json.success && json.data) {
           setDatos(json.data);
+        } else if (json.no_data) {
+          setError('no_data');
         } else {
           setError(json.error || 'Error al cargar los datos');
         }
@@ -81,7 +84,10 @@ export const Distributors: React.FC = () => {
   }
 
   if (error || !datos) {
-    return <div className="distributors-page p-4">No hay datos disponibles</div>;
+    if (error === 'no_data' || (error && error.includes('No such file or directory'))) {
+      return <SinDatos />;
+    }
+    return <div className="distributors-page p-4">{error || 'No hay datos disponibles'}</div>;
   }
 
   return (

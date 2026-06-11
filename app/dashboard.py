@@ -6,6 +6,7 @@ import threading
 
 _CACHE_DASHBOARD = None
 _CACHE_LOCK = threading.Lock()
+_CACHE_DISTRIBUIDORES = {}
 
 def limpiar_cache():
     global _CACHE_DASHBOARD
@@ -335,7 +336,16 @@ def obtener_data(directorio_archivos_limpios, forzar_actualizacion=False):
         return resultado
 def obtener_datos_distribuidores(directorio_archivos_limpios):
     ruta_mantenimientos = f"{directorio_archivos_limpios}/new_mantenimientos.xlsx"
-    
+    try:
+        mtime = os.path.getmtime(ruta_mantenimientos)
+    except Exception:
+        mtime = 0
+        
+    global _CACHE_DISTRIBUIDORES
+    if _CACHE_DISTRIBUIDORES.get('mtime') == mtime and 'data' in _CACHE_DISTRIBUIDORES:
+        print("[DASHBOARD] Sirviendo datos de distribuidores desde caché (instantáneo)")
+        return _CACHE_DISTRIBUIDORES['data']
+
     try:
         mantenimientos = pd.read_excel(ruta_mantenimientos)
     except Exception:
@@ -474,7 +484,7 @@ def obtener_datos_distribuidores(directorio_archivos_limpios):
         df_otros = mantenimientos[~mantenimientos[col_marca].isin(agric_marcas)]
         unidades_otros = int(df_otros[col_alias_mant].nunique())
 
-    return {
+    resultado = {
         'total_distribuidores': total_distribuidores,
         'pendientes_por_atender': pendientes_por_atender,
         'unidades_alerta_roja': unidades_alerta_roja,
@@ -484,3 +494,6 @@ def obtener_datos_distribuidores(directorio_archivos_limpios):
         'lista_unidades': lista_unidades,
         'recomendaciones': recs
     }
+    _CACHE_DISTRIBUIDORES['mtime'] = mtime
+    _CACHE_DISTRIBUIDORES['data'] = resultado
+    return resultado

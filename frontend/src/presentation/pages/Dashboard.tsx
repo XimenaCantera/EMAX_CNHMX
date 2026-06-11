@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
@@ -11,6 +12,7 @@ import {
   X
 } from 'lucide-react';
 import './Dashboard.css';
+import { SinDatos } from '../components/common/SinDatos';
 //Usamos lucide-react para poner íconos en las tarjetas del dashboard.
 
 interface TopOportunidad {
@@ -49,6 +51,7 @@ interface DashboardData {
 }
 
 export const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +67,8 @@ export const Dashboard: React.FC = () => {
 
       if (response.ok && json.success) {
         setData(json.data);
+      } else if (json.no_data) {
+        setError('no_data');
       } else {
         setError(json.error || 'Ocurrió un error al cargar el dashboard.');
       }
@@ -93,6 +98,10 @@ export const Dashboard: React.FC = () => {
   }
 
   if (error || !data) {
+    const isNoData = error === 'no_data' || (error && error.includes('No such file or directory'));
+    if (isNoData) {
+      return <SinDatos />;
+    }
     return (
       <div className="dashboard-error card">
         <AlertTriangle size={48} className="text-secondary" />
@@ -102,9 +111,9 @@ export const Dashboard: React.FC = () => {
           <button className="btn btn-primary" onClick={cargarDatosDashboard}>
             <RefreshCw size={16} /> Reintentar
           </button>
-          <a href="/import" className="btn btn-outline">
+          <button className="btn btn-primary" onClick={() => navigate('/import')}>
             Ir a Importar Datos
-          </a>
+          </button>
         </div>
       </div>
     );

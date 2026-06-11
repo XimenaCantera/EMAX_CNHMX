@@ -33,7 +33,11 @@ def init_fuga_servicios(server):
     def get_fuga_data():
         df_mantenimientos = cargar_datos_mantenimiento()
         if df_mantenimientos.empty:
-            return jsonify({"kpis": {}, "table": []})
+            return jsonify({
+                "success": False,
+                "no_data": True,
+                "error": "No existen datos cargados."
+            }), 200
 
         df_table = df_mantenimientos[['ALIAS', 'DISTRIBUIDOR', 'ESTATUS', 'retraso_horas', 'Frecuencia de servicio', 'Acción recomendada']].copy()
         df_table.columns = ['Unidad', 'Distribuidor', 'Estatus', 'Horas de retraso', 'Frecuencia de servicio', 'Acción recomendada']
