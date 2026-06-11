@@ -1,4 +1,9 @@
 import os
+import sys
+
+# Agregar el directorio actual al path de Python
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import pandas as pd
@@ -193,6 +198,12 @@ print("Iniciando servidor Flask...")
 # =============================================================
 from riesgo_operativo import init_riesgo_operativo
 init_riesgo_operativo(app)
+
+# =============================================================
+# Integrar Dash de Monetización
+# =============================================================
+from monetizacion import inicializar_monetizacion
+inicializar_monetizacion(app)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)

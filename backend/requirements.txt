@@ -16,3 +16,6 @@ dash
 # Biblioteca de graficación interactiva
 plotly
 
+# Modelo predictivo y aprendizaje automático
+xgboost
+scikit-learn

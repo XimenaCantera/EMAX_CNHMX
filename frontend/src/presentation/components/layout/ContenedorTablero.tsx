@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Cargador } from '../common/Cargador';
 
 interface PropiedadesContenedorTablero {
@@ -16,49 +16,62 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
   iframeSrc,
   iframeTitle,
   textoCargando,
-  colorFondoCargador = '#f8fafc',
+  colorFondoCargador = '#ffffff',
   altura = '100%',
   esContenedorCompleto = false
 }) => {
   const [estaCargando, establecerEstaCargando] = useState(true);
-  const [alturaIframe, setAlturaIframe] = useState('1600px');
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const alRecibirMensaje = (evento: MessageEvent) => {
+      // Verificar si el mensaje proviene de nuestro tablero Dash
       if (evento.data && evento.data.type === 'DASH_LOADED') {
         establecerEstaCargando(false);
-        setTimeout(() => {
-          try {
-            const iframe = iframeRef.current;
-            if (iframe && iframe.contentDocument) {
-              const h = iframe.contentDocument.body.scrollHeight;
-              if (h > 0) setAlturaIframe(`${h + 40}px`);
-            }
-          } catch (e) { }
-        }, 500);
-      }
-      if (evento.data && evento.data.type === 'DASH_HEIGHT') {
-        const nuevaAltura = evento.data.height;
-        if (nuevaAltura > 100) {
-          setAlturaIframe(`${nuevaAltura + 20}px`);
-        }
       }
     };
 
     window.addEventListener('message', alRecibirMensaje);
-    return () => window.removeEventListener('message', alRecibirMensaje);
+    return () => {
+      window.removeEventListener('message', alRecibirMensaje);
+    };
   }, []);
 
-  const estiloContenedorPagina: React.CSSProperties = {
-    padding: '8px 14px 0 14px',
-    boxSizing: 'border-box',
-    backgroundColor: '#f8fafc'
+  const estiloContenedorPagina: React.CSSProperties = esContenedorCompleto
+    ? {
+        padding: '0px 24px 24px 24px',
+        height: 'calc(100vh - 140px)',
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+        backgroundColor: '#f8fafc',
+        overflow: 'hidden'
+      }
+    : {
+        padding: '8px 0px 24px 0px',
+        boxSizing: 'border-box',
+        backgroundColor: '#f8fafc'
+      };
+
+  const estiloAreaIframe: React.CSSProperties = {
+    position: 'relative',
+    width: '100%',
+    height: esContenedorCompleto ? '100%' : altura,
+    backgroundColor: esContenedorCompleto ? '#ffffff' : 'transparent',
+    borderRadius: esContenedorCompleto ? '12px' : '0px',
+    border: esContenedorCompleto ? '1px solid #e5e7eb' : 'none',
+    boxShadow: esContenedorCompleto ? '0 1px 3px 0 rgba(0, 0, 0, 0.05)' : 'none',
+    overflow: 'hidden',
+    flex: esContenedorCompleto ? 1 : 'none'
   };
 
   return (
     <div style={estiloContenedorPagina}>
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{
+        marginBottom: '16px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
         <h1 style={{
           fontSize: '2.25rem',
           fontWeight: 800,
@@ -71,21 +84,25 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
         </h1>
       </div>
 
-      <div style={{ position: 'relative', width: '100%', minHeight: '200px' }}>
+      <div style={estiloAreaIframe}>
         {estaCargando && (
-          <Cargador texto={textoCargando} colorFondo={colorFondoCargador} />
+          <Cargador 
+            texto={textoCargando} 
+            colorFondo={colorFondoCargador} 
+          />
         )}
         <iframe
-          ref={iframeRef}
           src={iframeSrc}
           title={iframeTitle}
           width="100%"
-          height={alturaIframe}
-          scrolling="no"
+          height="100%"
+          scrolling={esContenedorCompleto ? 'yes' : 'no'}
           style={{
             border: 'none',
             display: estaCargando ? 'none' : 'block',
-            overflow: 'hidden'
+            overflow: esContenedorCompleto ? 'auto' : 'hidden',
+            height: '100%',
+            width: '100%'
           }}
         />
       </div>
