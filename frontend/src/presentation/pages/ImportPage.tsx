@@ -111,7 +111,7 @@ export const ImportPage: React.FC = () => {
     });
 
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/upload', {
+      const response = await fetch('http://127.0.0.1:5000/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -151,7 +151,7 @@ export const ImportPage: React.FC = () => {
       }
     } catch (err) {
       clearInterval(progressInterval);
-      setErrorMsg("No se pudo conectar con el servidor backend en http://127.0.0.1:5001. Asegúrate de iniciar el backend.");
+      setErrorMsg("No se pudo conectar con el servidor backend en http://127.0.0.1:5000. Asegúrate de iniciar el backend.");
       console.error(err);
     } finally {
       setUploading(false);

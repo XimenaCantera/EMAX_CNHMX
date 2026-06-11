@@ -95,7 +95,7 @@ export const Distributors: React.FC = () => {
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const respuesta = await fetch('http://localhost:5001/api/distribuidores');
+        const respuesta = await fetch('http://localhost:5000/api/distribuidores');
         const json = await respuesta.json();
 
         if (json.success && json.data) {
@@ -276,7 +276,7 @@ export const Distributors: React.FC = () => {
         <h3 className="card-title">CONCENTRACIÓN GEOGRÁFICA DE UNIDADES CRÍTICAS Y ALTAS</h3>
         <div style={{ height: '700px', width: '100%', borderRadius: '8px', overflow: 'hidden', marginTop: '16px' }}>
           <iframe
-            src="http://127.0.0.1:5001/api/mapa"
+            src="http://127.0.0.1:5000/api/mapa"
             style={{ width: '100%', height: '100%', border: 'none' }}
             title="Mapa de Riesgo"
           />

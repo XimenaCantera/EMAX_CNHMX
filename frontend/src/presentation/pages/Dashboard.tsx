@@ -59,7 +59,7 @@ export const Dashboard: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/dashboard');
+      const response = await fetch('http://127.0.0.1:5000/api/dashboard');
       const json = await response.json();
 
       if (response.ok && json.success) {
@@ -213,7 +213,7 @@ export const Dashboard: React.FC = () => {
 
           <div className="donut-download-btn-wrapper">
             <a
-              href="http://127.0.0.1:5001/api/download/tabla-riesgo"
+              href="http://127.0.0.1:5000/api/download/tabla-riesgo"
               download="tabla_riesgo_unidades.xlsx"
               className="btn btn-outline donut-download-btn"
             >

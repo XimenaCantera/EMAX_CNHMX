@@ -244,6 +244,8 @@ def init_riesgo_operativo(server):
         try:
             # Usar datos cacheados (solo reprocesa si el archivo cambió)
             datos = _obtener_datos_cacheados(maint_path)
+            maint_df = datos['maint_df']
+            dist_cluster_df = datos['dist_cluster_df']
             
             # Procesamiento de datos
             maint_df['delay_vs_service_interval'] = maint_df['ACTUAL'] - maint_df['SERVICIO']
