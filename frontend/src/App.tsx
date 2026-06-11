@@ -8,7 +8,7 @@ import { UnitDetail } from './presentation/pages/UnitDetail';
 import { FugaServicios } from './presentation/pages/FugaServicios';
 import { RiesgoOperativo } from './presentation/pages/RiesgoOperativo';
 import { ImportPage } from './presentation/pages/ImportPage';
-import { ActionPlan } from './presentation/components/ActionPlan/ActionPlan';
+import { ActionPlan } from './presentation/pages/ActionPlan';
 
 function App() {
   return (

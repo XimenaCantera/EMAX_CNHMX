@@ -20,6 +20,19 @@ DIRECTORIO_ARCHIVOS_LIMPIOS = os.path.join(DIRECTORIO_BASE, 'data', 'ArchivosLim
 # Importar funciones reales del dashboard
 from dashboard import obtener_data, limpiar_cache
 
+
+if not hasattr(Flask, 'before_first_request'):
+    def before_first_request(self, f):
+        ya_corrio = False
+        def wrapper(*args, **kwargs):
+            nonlocal ya_corrio
+            if not ya_corrio:
+                ya_corrio = True
+                f(*args, **kwargs)
+        self.before_request(wrapper)
+        return f
+    Flask.before_first_request = before_first_request
+
 # ==============================
 # Endpoints de la API REST
 # ==============================
@@ -31,86 +44,6 @@ def obtener_estado_servidor():
         "message": "Servidor backend de CNH Industrial activo con Dash."
     }), 200
 
-@app.route('/api/upload', methods=['POST'])
-def subir_archivos_excel():
-    archivos_cargados = request.files.getlist('files') or request.files.getlist('file')
-    if not archivos_cargados or len(archivos_cargados) == 0 or (len(archivos_cargados) == 1 and archivos_cargados[0].filename == ''):
-        return jsonify({"error": "No se recibió ningún archivo válido en la solicitud."}), 400
-        
-    resultados_procesamiento = []
-    
-    def sanitizar_valor_celda(valor):
-        if pd.isnull(valor) or valor is None:
-            return None
-        if isinstance(valor, (pd.Timestamp, pd.Timedelta)):
-            return str(valor)
-        if isinstance(valor, float):
-            if np.isnan(valor) or np.isinf(valor):
-                return None
-        try:
-            # Convierte los valores de numpy a nativos de Python
-            if hasattr(valor, 'item'):
-                return valor.item()
-        except Exception:
-            pass
-        return valor
-
-    for archivo in archivos_cargados:
-        if archivo.filename == '':
-            continue
-        if not archivo.filename.lower().endswith('.xlsx'):
-            resultados_procesamiento.append({
-                "filename": archivo.filename,
-                "success": False,
-                "error": "Solo se permiten archivos de tipo Excel (.xlsx)."
-            })
-            continue
-            
-        try:
-            os.makedirs(DIRECTORIO_ARCHIVOS_LIMPIOS, exist_ok=True)
-            ruta_destino = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, archivo.filename)
-            archivo.save(ruta_destino)
-            
-            df_temporal = pd.read_excel(ruta_destino)
-            cantidad_filas = len(df_temporal)
-            lista_columnas = list(df_temporal.columns)
-            tamano_archivo = os.path.getsize(ruta_destino)
- 
-            vista_previa_original = df_temporal.head(5).to_dict(orient='records')
-            datos_vista_previa = [
-                {columna: sanitizar_valor_celda(valor) for columna, valor in fila.items()}
-                for fila in vista_previa_original
-            ]
-            
-            resultados_procesamiento.append({
-                "filename": archivo.filename,
-                "success": True,
-                "message": f"¡Archivo '{archivo.filename}' importado y guardado correctamente!",
-                "metadata": {
-                    "filename": archivo.filename,
-                    "size_bytes": tamano_archivo,
-                    "rows": cantidad_filas,
-                    "columns": lista_columnas,
-                    "preview": datos_vista_previa
-                }
-            })
-        except Exception as error_carga:
-            resultados_procesamiento.append({
-                "filename": archivo.filename,
-                "success": False,
-                "error": f"Error al procesar el archivo: {str(error_carga)}"
-            })
-            
-    cantidad_exitosos = sum(1 for resultado in resultados_procesamiento if resultado["success"])
-    if cantidad_exitosos > 0:
-        limpiar_cache()
-        
-    return jsonify({
-        "success": cantidad_exitosos > 0,
-        "results": resultados_procesamiento,
-        "success_count": cantidad_exitosos,
-        "total_count": len(resultados_procesamiento)
-    }), 200
 
 @app.route('/api/dashboard', methods=['GET'])
 def obtener_dashboard():
@@ -184,8 +117,6 @@ def descargar_tabla_riesgo():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-print("Iniciando servidor Flask...")
-
 # =============================================================
 # 6.2.1 Integrar Dash de Riesgo Operativo
 # =============================================================
@@ -203,6 +134,12 @@ inicializar_monetizacion(app)
 # =============================================================
 from fuga_servicios import init_fuga_servicios
 init_fuga_servicios(app)
+
+# =============================================================
+# Integrar Importar Datos
+# =============================================================
+from importador import init_importador
+init_importador(app)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

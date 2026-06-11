@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styles from './ActionPlan.module.css';
-import financialData from '../../../data/financialModel.json';
+import financialData from '../../data/financialModel.json';
 
 interface Task {
   id: string;
