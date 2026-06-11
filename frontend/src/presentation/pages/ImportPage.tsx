@@ -177,6 +177,85 @@ export const ImportPage: React.FC = () => {
         <h1>Importar información</h1>
       </div>
 
+
+      {/* Guía de archivos requeridos */}
+      <div className="card expected-files-guide" style={{ marginTop: '24px', padding: '24px' }}>
+        <h3 className="card-title" style={{ marginBottom: '8px', fontSize: '1.1rem', fontWeight: 'bold', color: '#000000' }}>
+          Guía de Archivos y Columnas Esperadas
+        </h3>
+        <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '20px' }}>
+          El sistema valida de forma automática el tipo de archivo al momento de importarlo. Se necesita subir los archivos con los siguientes nombres para los procesos del tablero analítico.
+        </p>
+
+        <div className="guide-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+          <div className="guide-item" style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span className="font-bold text-sm" style={{ color: '#0f172a' }}>Mantenimientos</span>
+              <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>mantenimientos.xlsx</span>
+            </div>
+            <p className="text-muted text-xs" style={{ marginBottom: '8px' }}>Contiene el registro de servicios de mantenimiento de las unidades.</p>
+            <div style={{ fontSize: '0.75rem' }}>
+              <strong>Columnas requeridas:</strong> <code style={{ color: '#0369a1' }}>SERVICIO, ACTUAL, ESTATUS, ALIAS</code>
+            </div>
+          </div>
+
+          <div className="guide-item" style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span className="font-bold text-sm" style={{ color: '#0f172a' }}>Unidades (Reporte)</span>
+              <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>unidades.xlsx</span>
+            </div>
+            <p className="text-muted text-xs" style={{ marginBottom: '8px' }}>Contiene las especificaciones, fechas de alta y acumulado de aftermarket de los equipos.</p>
+            <div style={{ fontSize: '0.75rem' }}>
+              <strong>Columnas requeridas:</strong> <code style={{ color: '#0369a1' }}>Alias, Fecha Alta, Cerrados, C.Fuera, Pendientes, Horometro</code>
+            </div>
+          </div>
+
+          <div className="guide-item" style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span className="font-bold text-sm" style={{ color: '#0f172a' }}>Población (Severidad)</span>
+              <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>population.xlsx</span>
+            </div>
+            <p className="text-muted text-xs" style={{ marginBottom: '8px' }}>Contiene la severidad y el estatus operativo general de cada equipo por número de serie.</p>
+            <div style={{ fontSize: '0.75rem' }}>
+              <strong>Columnas requeridas:</strong> <code style={{ color: '#0369a1' }}>VIN (17 CHARACTERS), SEVERITY LEVEL, MODEL</code>
+            </div>
+          </div>
+
+          <div className="guide-item" style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span className="font-bold text-sm" style={{ color: '#0f172a' }}>Horas de Trabajo</span>
+              <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>horas.xlsx</span>
+            </div>
+            <p className="text-muted text-xs" style={{ marginBottom: '8px' }}>Registros de horas operadas por día o mensuales por unidad.</p>
+            <div style={{ fontSize: '0.75rem' }}>
+              <strong>Columnas requeridas:</strong> <code style={{ color: '#0369a1' }}>Alias, IMEI, Latitud, Longitud, AAAA-MM</code>
+            </div>
+          </div>
+
+          <div className="guide-item" style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span className="font-bold text-sm" style={{ color: '#0f172a' }}>Ruteo Geográfico / Distancia</span>
+              <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>ruteo.xlsx</span>
+            </div>
+            <p className="text-muted text-xs" style={{ marginBottom: '8px' }}>Coordenadas geográficas de traslado o indicadores de distancia de ruta.</p>
+            <div style={{ fontSize: '0.75rem' }}>
+              <strong>Columnas requeridas:</strong> <code style={{ color: '#0369a1' }}>Division, Distancia del Dia, Distancia de Ruta</code>
+            </div>
+          </div>
+
+          <div className="guide-item" style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span className="font-bold text-sm" style={{ color: '#0f172a' }}>Distribuidores</span>
+              <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>distribuidor.xlsx</span>
+            </div>
+            <p className="text-muted text-xs" style={{ marginBottom: '8px' }}>Listado de distribuidores autorizados asociados a zonas geográficas.</p>
+            <div style={{ fontSize: '0.75rem' }}>
+              <strong>Columnas requeridas:</strong> <code style={{ color: '#0369a1' }}>DISTRIBUIDOR, CIUDAD, ESTADO</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="card upload-card">
         <div className="upload-header">
           <h3 className="upload-title">Subir documento</h3>
@@ -314,93 +393,8 @@ export const ImportPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Vista previa de datos por pestañas */}
-      {importedResults && importedResults.length > 0 && (
-        <div className="card preview-card fade-in">
-          <div className="preview-results-header">
-            <h3 className="card-title">Resumen de Archivos Importados</h3>
-          </div>
 
-          <div className="preview-tabs">
-            {importedResults.map((res, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className={`preview-tab-btn ${activePreviewIndex === idx ? 'active' : ''} ${res.success ? 'success' : 'error'}`}
-                onClick={() => setActivePreviewIndex(idx)}
-              >
-                <FileSpreadsheet size={16} />
-                <span className="tab-filename">{res.filename}</span>
-                <span className={`badge ${res.success ? 'badge-success' : 'badge-critical'}`}>
-                  {res.success ? 'Listo' : 'Error'}
-                </span>
-              </button>
-            ))}
-          </div>
 
-          {importedResults[activePreviewIndex] && (
-            <div className="active-preview-content">
-              {importedResults[activePreviewIndex].success && importedResults[activePreviewIndex].metadata ? (
-                <>
-                  <div className="preview-header">
-                    <div className="flex items-center gap-sm">
-                      <ShieldCheck className="text-success" size={24} />
-                      <div>
-                        <h4 className="font-bold">{importedResults[activePreviewIndex].filename}</h4>
-                        <p className="text-muted text-sm">Mostrando primeros 5 registros de datos importados</p>
-                      </div>
-                    </div>
-
-                    <div className="preview-summary-pills">
-                      <div className="preview-sum-pill">
-                        <span className="sum-label">Registros</span>
-                        <span className="sum-val">
-                          {importedResults[activePreviewIndex].metadata!.rows.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="preview-sum-pill">
-                        <span className="sum-label">Columnas</span>
-                        <span className="sum-val">
-                          {importedResults[activePreviewIndex].metadata!.columns.length}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="preview-table-container">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          {importedResults[activePreviewIndex].metadata!.columns.map((col: string) => (
-                            <th key={col}>{col}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {importedResults[activePreviewIndex].metadata!.preview.map((row: any, rIdx: number) => (
-                          <tr key={rIdx}>
-                            {importedResults[activePreviewIndex].metadata!.columns.map((col: string) => (
-                              <td key={col} className={typeof row[col] === 'number' ? 'font-mono' : ''}>
-                                {row[col] !== null && row[col] !== undefined ? String(row[col]) : <em className="text-muted text-xs">nulo</em>}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              ) : (
-                <div className="preview-error-box">
-                  <XCircle size={36} className="text-critical mb-sm" />
-                  <h4 className="font-bold text-critical">Error en este archivo</h4>
-                  <p className="text-muted">{importedResults[activePreviewIndex].error}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
