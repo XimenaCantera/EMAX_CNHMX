@@ -5,6 +5,8 @@ import dash
 from dash import dcc, html
 import plotly.express as px
 import plotly.graph_objects as go
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
 
 # Definición de rutas del proyecto
 DIRECTORIO_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -52,7 +54,6 @@ def inicializar_monetizacion(servidor_flask):
             df_reporte = pd.read_excel(ruta_unidades)
             df_poblacion = pd.read_excel(ruta_poblacion)
 
-
             # Calcular retrasos en mantenimientos
             df_mantenimientos['delay_vs_service_interval'] = df_mantenimientos['ACTUAL'] - df_mantenimientos['SERVICIO']
             
@@ -70,13 +71,15 @@ def inicializar_monetizacion(servidor_flask):
             fecha_actual = pd.to_datetime('today')
             df_unidades['edad_equipo'] = ((fecha_actual - df_unidades['Fecha Alta']).dt.days / 365.25).round(2)
             df_unidades.dropna(subset=['edad_equipo'], inplace=True)
+            df_unidades = df_unidades.drop_duplicates(subset=['ALIAS'])
 
-            # Cálcular de valor acumulado en aftermarket
+            # Cálculo de valor acumulado en aftermarket
             columnas_valor_aftermarket = ['Cerrados', 'C.Fuera', 'Pendientes']
             for col in columnas_valor_aftermarket:
                 df_reporte[col] = pd.to_numeric(df_reporte[col], errors='coerce')
             df_reporte['valor_acumulado_aftermarket'] = df_reporte[columnas_valor_aftermarket].fillna(0).sum(axis=1)
             df_valor_aftermarket = df_reporte[['Alias', 'valor_acumulado_aftermarket']].rename(columns={'Alias': 'ALIAS'}).copy()
+            df_valor_aftermarket = df_valor_aftermarket.drop_duplicates(subset=['ALIAS'])
 
             df_agrupado_riesgo = df_mantenimientos.groupby('ALIAS').agg(
                 avg_overdue_risk=('overdue_risk', 'mean'),
@@ -86,6 +89,7 @@ def inicializar_monetizacion(servidor_flask):
 
             # Combinación de dataframes
             df_poblacion_unidad = df_poblacion.rename(columns={'VIN (17 CHARACTERS)': 'NO SERIE', 'SEVERITY LEVEL': 'SEVERITY_LEVEL'}).copy()
+            df_poblacion_unidad = df_poblacion_unidad.drop_duplicates(subset=['NO SERIE'])
             df_mantenimientos_severidad = pd.merge(df_mantenimientos, df_poblacion_unidad[['NO SERIE', 'SEVERITY_LEVEL']], on='NO SERIE', how='left')
             df_severidad_por_alias = df_mantenimientos_severidad.groupby('ALIAS')['SEVERITY_LEVEL'].agg(lambda x: x.mode()[0] if not x.mode().empty else np.nan).reset_index()
 
@@ -115,13 +119,115 @@ def inicializar_monetizacion(servidor_flask):
 
             df_monetizacion_final['puntaje_oportunidad'] = df_monetizacion_final['riesgo_retraso_norm'] * df_monetizacion_final['valor_aftermarket_norm']
 
-            # Mejores unidades según puntaje
+            # Mejores unidades según puntaje (Tab 1)
             mejores_15_unidades = df_monetizacion_final.sort_values(by='puntaje_oportunidad', ascending=False).head(15)
             tabla_top_10 = df_monetizacion_final.sort_values(by='puntaje_oportunidad', ascending=False).head(10)
 
-            # -----------------------------------------------------
-            # Chart 1 (Oportunidad por Unidad)
-            # -----------------------------------------------------
+            # ============================================
+            # ENTRENAMIENTO DE MODELOS XGBOOST
+            # ============================================
+            
+            # --- Predicción de Retraso de Servicio (Pendiente/CerradaFuera) ---
+            df_mantenimiento_xgb = df_mantenimientos.copy()
+            df_mantenimiento_xgb['mantenimiento_pendiente_fuera'] = df_mantenimiento_xgb['ESTATUS'].apply(
+                lambda s: 1 if s in ['Pendiente', 'CerradaFuera'] else (0 if s == 'Cerrada' else np.nan)
+            )
+            df_mantenimiento_xgb.dropna(subset=['mantenimiento_pendiente_fuera'], inplace=True)
+            df_mantenimiento_xgb['mantenimiento_pendiente_fuera'] = df_mantenimiento_xgb['mantenimiento_pendiente_fuera'].astype(int)
+
+            df_mantenimiento_xgb = pd.merge(df_mantenimiento_xgb, df_frecuencia_servicio, on='ALIAS', how='left')
+            df_mantenimiento_xgb = pd.merge(df_mantenimiento_xgb, df_unidades[['ALIAS', 'edad_equipo']], on='ALIAS', how='left')
+            df_mantenimiento_xgb = pd.merge(df_mantenimiento_xgb, df_poblacion_unidad[['NO SERIE', 'SEVERITY_LEVEL']], on='NO SERIE', how='left')
+
+            df_model_maint = df_mantenimiento_xgb[['mantenimiento_pendiente_fuera', 'frecuencia_servicio', 'edad_equipo', 'SEVERITY_LEVEL', 'overdue_risk']].copy()
+            df_model_maint['frecuencia_servicio'] = df_model_maint['frecuencia_servicio'].fillna(0)
+            df_model_maint['edad_equipo'] = df_model_maint['edad_equipo'].fillna(df_model_maint['edad_equipo'].median() if not df_model_maint['edad_equipo'].dropna().empty else 2.0)
+            df_model_maint['SEVERITY_LEVEL'] = df_model_maint['SEVERITY_LEVEL'].fillna('Medium')
+            df_model_maint['overdue_risk'] = df_model_maint['overdue_risk'].fillna(0)
+
+            # One-Hot Encoding
+            df_model_maint_encoded = pd.get_dummies(df_model_maint, columns=['SEVERITY_LEVEL'], drop_first=True)
+            # Asegurar consistencia de columnas de severidad
+            for level in ['Medium', 'High', 'Low', 'Critical']:
+                col = f'SEVERITY_LEVEL_{level}'
+                if col not in df_model_maint_encoded.columns and col != 'SEVERITY_LEVEL_Medium': # Since drop_first removes one
+                    df_model_maint_encoded[col] = 0
+
+            X_maint = df_model_maint_encoded.drop(columns=['mantenimiento_pendiente_fuera'])
+            y_maint = df_model_maint_encoded['mantenimiento_pendiente_fuera']
+
+            model_xgb_maint = xgb.XGBClassifier(
+                objective='binary:logistic',
+                eval_metric='logloss',
+                random_state=42
+            )
+            model_xgb_maint.fit(X_maint, y_maint)
+
+            # --- MODELO 2: Alta Oportunidad de Monetización ---
+            percentil_75 = df_monetizacion_final['puntaje_oportunidad'].quantile(0.75)
+            df_monetizacion_final['oportunidad_alta'] = (df_monetizacion_final['puntaje_oportunidad'] >= percentil_75).astype(int)
+
+            df_model_monet = df_monetizacion_final[['frecuencia_servicio', 'valor_acumulado_aftermarket', 'edad_equipo', 'avg_overdue_risk', 'avg_delay_vs_service_interval', 'SEVERITY_LEVEL']].copy()
+            df_model_monet['frecuencia_servicio'] = df_model_monet['frecuencia_servicio'].fillna(0)
+            df_model_monet['valor_acumulado_aftermarket'] = df_model_monet['valor_acumulado_aftermarket'].fillna(0)
+            df_model_monet['edad_equipo'] = df_model_monet['edad_equipo'].fillna(df_model_monet['edad_equipo'].median() if not df_model_monet['edad_equipo'].dropna().empty else 2.0)
+            df_model_monet['avg_overdue_risk'] = df_model_monet['avg_overdue_risk'].fillna(0)
+            df_model_monet['avg_delay_vs_service_interval'] = df_model_monet['avg_delay_vs_service_interval'].fillna(0)
+            df_model_monet['SEVERITY_LEVEL'] = df_model_monet['SEVERITY_LEVEL'].fillna('Medium')
+
+            df_model_monet_encoded = pd.get_dummies(df_model_monet, columns=['SEVERITY_LEVEL'], drop_first=True)
+            for level in ['Medium', 'High', 'Low', 'Critical']:
+                col = f'SEVERITY_LEVEL_{level}'
+                if col not in df_model_monet_encoded.columns and col != 'SEVERITY_LEVEL_Medium':
+                    df_model_monet_encoded[col] = 0
+
+            # Asegurar las mismas columnas que X_maint para consistencia
+            X_monet = df_model_monet_encoded.copy()
+            y_monet = df_monetizacion_final['oportunidad_alta']
+
+            model_xgb_monet = xgb.XGBClassifier(
+                objective='binary:logistic',
+                eval_metric='logloss',
+                random_state=42
+            )
+            model_xgb_monet.fit(X_monet, y_monet)
+
+            # Predecir probabilidades de alta oportunidad
+            df_monetizacion_final['y_pred_proba_monetization'] = model_xgb_monet.predict_proba(X_monet)[:, 1]
+
+            # Predicción para mantenimientos activos
+            df_mantenimientos_activos = df_mantenimientos[df_mantenimientos['ESTATUS'] != 'Cerrada'].copy()
+            if not df_mantenimientos_activos.empty:
+                df_act_features = df_mantenimientos_activos.copy()
+                df_act_features = pd.merge(df_act_features, df_frecuencia_servicio, on='ALIAS', how='left')
+                df_act_features = pd.merge(df_act_features, df_unidades[['ALIAS', 'edad_equipo']], on='ALIAS', how='left')
+                df_act_features = pd.merge(df_act_features, df_poblacion_unidad[['NO SERIE', 'SEVERITY_LEVEL']], on='NO SERIE', how='left')
+
+                df_act_features = df_act_features[['frecuencia_servicio', 'edad_equipo', 'SEVERITY_LEVEL', 'overdue_risk']].copy()
+                df_act_features['frecuencia_servicio'] = df_act_features['frecuencia_servicio'].fillna(0)
+                df_act_features['edad_equipo'] = df_act_features['edad_equipo'].fillna(df_model_maint['edad_equipo'].median())
+                df_act_features['SEVERITY_LEVEL'] = df_act_features['SEVERITY_LEVEL'].fillna('Medium')
+                df_act_features['overdue_risk'] = df_act_features['overdue_risk'].fillna(0)
+
+                df_act_encoded = pd.get_dummies(df_act_features, columns=['SEVERITY_LEVEL'], drop_first=True)
+                for col in X_maint.columns:
+                    if col not in df_act_encoded.columns:
+                        df_act_encoded[col] = 0
+                df_act_encoded = df_act_encoded[X_maint.columns]
+
+                df_mantenimientos_activos['prob_retraso'] = model_xgb_maint.predict_proba(df_act_encoded)[:, 1]
+                df_mantenimientos_activos_top = df_mantenimientos_activos.sort_values(by='prob_retraso', ascending=False).head(10)
+            else:
+                df_mantenimientos_activos_top = pd.DataFrame()
+
+            # Unidades con mayor oportunidad (Tab 2)
+            tabla_pred_comercial = df_monetizacion_final.sort_values(by='y_pred_proba_monetization', ascending=False).head(10)
+
+            # =========================================================================
+            # CONSTRUCCIÓN DE GRÁFICOS (TAB 1)
+            # =========================================================================
+            
+            # Chart 1: Oportunidad por Unidad (Barras Horizontales)
             figura_barras_oportunidad = px.bar(
                 mejores_15_unidades,
                 x='puntaje_oportunidad',
@@ -152,16 +258,13 @@ def inicializar_monetizacion(servidor_flask):
                 height=380
             )
 
-            # -------------------------------------------------
-            # Chart 2 (Curva de Pareto)
-            # -------------------------------------------------
+            # Chart 2: Curva de Pareto
             df_curva_pareto = df_monetizacion_final.sort_values(by='puntaje_oportunidad', ascending=False).reset_index(drop=True)
             puntaje_total = df_curva_pareto['puntaje_oportunidad'].sum()
-            df_curva_pareto['cumulative_score_pct'] = (df_curva_pareto['puntaje_oportunidad'].cumsum() / puntaje_total) * 100
+            df_curva_pareto['cumulative_score_pct'] = (df_curva_pareto['puntaje_oportunidad'].cumsum() / (puntaje_total if puntaje_total > 0 else 1.0)) * 100
             df_curva_pareto['cumulative_units_pct'] = (df_curva_pareto.index + 1) / len(df_curva_pareto) * 100
 
             figura_pareto = go.Figure()
-            # Línea de score acumulado
             figura_pareto.add_trace(go.Scatter(
                 x=df_curva_pareto['cumulative_units_pct'],
                 y=df_curva_pareto['cumulative_score_pct'],
@@ -169,7 +272,6 @@ def inicializar_monetizacion(servidor_flask):
                 line=dict(color='#991b1b', width=3),
                 mode='lines'
             ))
-            # Línea de score individual
             figura_pareto.add_trace(go.Scatter(
                 x=df_curva_pareto['cumulative_units_pct'],
                 y=df_curva_pareto['puntaje_oportunidad'],
@@ -179,7 +281,6 @@ def inicializar_monetizacion(servidor_flask):
                 yaxis='y2'
             ))
 
-            # Calcular punto de corte sobre el 80% de oportunidad acumulada
             df_objetivo = df_curva_pareto[df_curva_pareto['cumulative_score_pct'] >= 80.0]
             punto_corte_x = df_objetivo['cumulative_units_pct'].min() if not df_objetivo.empty else 80.0
 
@@ -211,9 +312,7 @@ def inicializar_monetizacion(servidor_flask):
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=9))
             )
 
-            # -------------------------------------------------------------
-            # Chart 3 (Barras Agrupadas)
-            # -------------------------------------------------------------
+            # Chart 3: Barras Agrupadas
             df_reestructurado_variables = mejores_15_unidades.copy()
             df_reestructurado_variables.rename(columns={
                 'riesgo_retraso_norm': 'Riesgo de Retraso (RIT)',
@@ -249,117 +348,278 @@ def inicializar_monetizacion(servidor_flask):
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=9))
             )
 
-            # -------------------------------
-            # Tabla de Score
-            # -------------------------------
+            # =========================================================================
+            # COMPONENTES DE TABLA Y ESTILOS
+            # =========================================================================
+            
             def obtener_estilo_etiqueta_puntaje(puntaje):
-                if puntaje == 1.0:
-                    return {'background-color': '#dc2626', 'color': '#ffffff', 'border': '1.5px solid #dc2626', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
-                elif puntaje >= 0.8:
-                    return {'background-color': '#ffffff', 'border': '1.5px solid #ef4444', 'color': '#dc2626', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
-                elif puntaje >= 0.7:
-                    return {'background-color': '#ffffff', 'border': '1.5px solid #f87171', 'color': '#b91c1c', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
-                elif puntaje >= 0.6:
-                    return {'background-color': '#ffffff', 'border': '1.5px solid #fca5a5', 'color': '#dc2626', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
+                if puntaje >= 0.9:
+                    return {'background-color': '#dc2626', 'color': '#ffffff', 'border': '1.5px solid #dc2626', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '52px', 'height': '22px', 'border-radius': '4px', 'font-weight': '700', 'font-size': '0.75rem'}
+                elif puntaje >= 0.75:
+                    return {'background-color': '#ffffff', 'border': '1.5px solid #ef4444', 'color': '#dc2626', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '52px', 'height': '22px', 'border-radius': '4px', 'font-weight': '700', 'font-size': '0.75rem'}
+                elif puntaje >= 0.5:
+                    return {'background-color': '#ffffff', 'border': '1.5px solid #f87171', 'color': '#b91c1c', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '52px', 'height': '22px', 'border-radius': '4px', 'font-weight': '700', 'font-size': '0.75rem'}
                 else:
-                    return {'background-color': '#ffffff', 'border': '1.5px solid #fee2e2', 'color': '#ef4444', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '44px', 'height': '20px', 'border-radius': '3px', 'font-weight': '700', 'font-size': '0.75rem'}
+                    return {'background-color': '#ffffff', 'border': '1.5px solid #fee2e2', 'color': '#ef4444', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '52px', 'height': '22px', 'border-radius': '4px', 'font-weight': '700', 'font-size': '0.75rem'}
 
-            cabecera_tabla = [
+            def obtener_estilo_badge_probabilidad(prob):
+                pct = prob * 100
+                if prob >= 0.8:
+                    return {'background-color': '#fee2e2', 'color': '#991b1b', 'border': '1px solid #fca5a5', 'padding': '2px 8px', 'border-radius': '12px', 'font-weight': '600', 'font-size': '0.75rem'}
+                elif prob >= 0.5:
+                    return {'background-color': '#ffedd5', 'color': '#c2410c', 'border': '1px solid #fed7aa', 'padding': '2px 8px', 'border-radius': '12px', 'font-weight': '600', 'font-size': '0.75rem'}
+                else:
+                    return {'background-color': '#dcfce7', 'color': '#15803d', 'border': '1px solid #bbf7d0', 'padding': '2px 8px', 'border-radius': '12px', 'font-weight': '600', 'font-size': '0.75rem'}
+
+            # --- Tabla 1: Top Oportunidades Analíticas ---
+            cabecera_tabla_analitica = [
                 html.Tr([
-                    html.Th("Unidad", 
-                        style={'text-align': 'left', 'padding': '8px 10px', 'font-weight': '600', 'color': '#6b7280', 'border-bottom': '1px solid #e5e7eb', 'background-color': '#fafbfc'}),
-                    html.Th("Distribuidor", 
-                        style={'text-align': 'left', 'padding': '8px 10px', 'font-weight': '600', 'color': '#6b7280', 'border-bottom': '1px solid #e5e7eb', 'background-color': '#fafbfc'}),
-                    html.Th("Puntaje Oportunidad", 
-                        style={'text-align': 'center', 'padding': '8px 10px', 'font-weight': '600', 'color': '#6b7280', 'border-bottom': '1px solid #e5e7eb', 'background-color': '#fafbfc'}),
-                    html.Th("Retraso", 
-                        style={'text-align': 'left', 'padding': '8px 10px', 'font-weight': '600', 'color': '#6b7280', 'border-bottom': '1px solid #e5e7eb', 'background-color': '#fafbfc'})
+                    html.Th("Unidad", style={'text-align': 'left', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'}),
+                    html.Th("Distribuidor", style={'text-align': 'left', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'}),
+                    html.Th("Puntaje Oportunidad", style={'text-align': 'center', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'}),
+                    html.Th("Retraso", style={'text-align': 'left', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'})
                 ])
             ]
-
-            filas_tabla = []
+            filas_tabla_analitica = []
             for _, row in tabla_top_10.iterrows():
-
                 delay_val = row['avg_delay_vs_service_interval']
                 texto_retraso = f"{int(delay_val)} horas" if not pd.isnull(delay_val) else "0 horas"
-                
-                filas_tabla.append(html.Tr([
-                    html.Td(row['ALIAS'], 
-                        style={'padding': '8px 10px', 'border-bottom': '1px solid #f3f4f6', 'font-weight': '600', 'color': '#1e293b'}),
-                    html.Td(row['DISTRIBUIDOR'] if not pd.isnull(row['DISTRIBUIDOR']) else 'Desconocido', 
-                        style={'padding': '8px 10px', 'border-bottom': '1px solid #f3f4f6'}),
-                    html.Td(
-                        html.Span(f"{row['puntaje_oportunidad']:.2f}", 
-                        style=obtener_estilo_etiqueta_puntaje(row['puntaje_oportunidad'])),
-                        style={'text-align': 'center', 'padding': '8px 10px', 'border-bottom': '1px solid #f3f4f6'}
-                    ),
-                    html.Td(texto_retraso, 
-                        style={'padding': '8px 10px', 'border-bottom': '1px solid #f3f4f6'})
+                filas_tabla_analitica.append(html.Tr([
+                    html.Td(row['ALIAS'], style={'padding': '10px', 'border-bottom': '1px solid #f1f5f9', 'font-weight': '600', 'color': '#1e293b'}),
+                    html.Td(row['DISTRIBUIDOR'] if not pd.isnull(row['DISTRIBUIDOR']) else 'Desconocido', style={'padding': '10px', 'border-bottom': '1px solid #f1f5f9', 'color': '#475569'}),
+                    html.Td(html.Span(f"{row['puntaje_oportunidad']:.2f}", style=obtener_estilo_etiqueta_puntaje(row['puntaje_oportunidad'])), style={'text-align': 'center', 'padding': '10px', 'border-bottom': '1px solid #f1f5f9'}),
+                    html.Td(texto_retraso, style={'padding': '10px', 'border-bottom': '1px solid #f1f5f9', 'color': '#475569'})
                 ]))
 
-            # Regresa el layout del dashboard
+            # --- Tabla 2: Tabla de Predicción Comercial (XGBoost Monetización) ---
+            cabecera_tabla_prediccion = [
+                html.Tr([
+                    html.Th("Unidad", style={'text-align': 'left', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'}),
+                    html.Th("Distribuidor", style={'text-align': 'left', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'}),
+                    html.Th("Valor Aftermarket", style={'text-align': 'right', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'}),
+                    html.Th("Probabilidad Monetización (XGB)", style={'text-align': 'center', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'})
+                ])
+            ]
+            filas_tabla_prediccion = []
+            for _, row in tabla_pred_comercial.iterrows():
+                val_aft = row['valor_acumulado_aftermarket']
+                texto_aft = f"${val_aft:,.2f}" if not pd.isnull(val_aft) else "$0.00"
+                prob = row['y_pred_proba_monetization']
+                filas_tabla_prediccion.append(html.Tr([
+                    html.Td(row['ALIAS'], style={'padding': '10px', 'border-bottom': '1px solid #f1f5f9', 'font-weight': '600', 'color': '#1e293b'}),
+                    html.Td(row['DISTRIBUIDOR'] if not pd.isnull(row['DISTRIBUIDOR']) else 'Desconocido', style={'padding': '10px', 'border-bottom': '1px solid #f1f5f9', 'color': '#475569'}),
+                    html.Td(texto_aft, style={'text-align': 'right', 'padding': '10px', 'border-bottom': '1px solid #f1f5f9', 'font-weight': '600', 'color': '#0f172a'}),
+                    html.Td(html.Span(f"{prob * 100:.1f}%", style=obtener_estilo_badge_probabilidad(prob)), style={'text-align': 'center', 'padding': '10px', 'border-bottom': '1px solid #f1f5f9'})
+                ]))
+
+            # --- Tabla 3: Tabla de Riesgo de Retraso de Mantenimiento (XGBoost Servicios) ---
+            cabecera_tabla_servicios = [
+                html.Tr([
+                    html.Th("ID Mantenimiento", style={'text-align': 'left', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'}),
+                    html.Th("Unidad", style={'text-align': 'left', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'}),
+                    html.Th("Estatus Actual", style={'text-align': 'left', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'}),
+                    html.Th("Distribuidor", style={'text-align': 'left', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'}),
+                    html.Th("Probabilidad de Retraso (XGB)", style={'text-align': 'center', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'})
+                ])
+            ]
+            filas_tabla_servicios = []
+            if not df_mantenimientos_activos_top.empty:
+                for _, row in df_mantenimientos_activos_top.iterrows():
+                    prob = row['prob_retraso']
+                    filas_tabla_servicios.append(html.Tr([
+                        html.Td(row['ID_MANTENIMIENTO'] if 'ID_MANTENIMIENTO' in row else f"SRV-{row.name}", style={'padding': '10px', 'border-bottom': '1px solid #f1f5f9', 'font-weight': '600', 'color': '#1e293b'}),
+                        html.Td(row['ALIAS'], style={'padding': '10px', 'border-bottom': '1px solid #f1f5f9', 'color': '#475569'}),
+                        html.Td(html.Span(row['ESTATUS'], style={'padding': '3px 8px', 'background-color': '#f1f5f9', 'border-radius': '4px', 'font-size': '0.75rem', 'font-weight': '600', 'color': '#475569'}), style={'padding': '10px', 'border-bottom': '1px solid #f1f5f9'}),
+                        html.Td(row['DISTRIBUIDOR'] if not pd.isnull(row['DISTRIBUIDOR']) else 'Desconocido', style={'padding': '10px', 'border-bottom': '1px solid #f1f5f9', 'color': '#475569'}),
+                        html.Td(html.Span(f"{prob * 100:.1f}%", style=obtener_estilo_badge_probabilidad(prob)), style={'text-align': 'center', 'padding': '10px', 'border-bottom': '1px solid #f1f5f9'})
+                    ]))
+            else:
+                filas_tabla_servicios.append(html.Tr([
+                    html.Td("No hay mantenimientos activos pendientes de analizar.", colSpan=5, style={'text-align': 'center', 'padding': '20px', 'color': '#64748b'})
+                ]))
+
+            # =========================================================================
+            # RETORNO DEL DISEÑO CON PESTAÑAS (TABS)
+            # =========================================================================
+            
             return html.Div([
-                # Fila 1: Tabla y Gráfico de barras horizontales
-                html.Div([
-                    # Izquierda: Tarjeta de tabla
-                    html.Div([
-                        html.Table(cabecera_tabla + filas_tabla, style={
-                            'width': '100%', 
-                            'border-collapse': 'collapse', 
-                            'font-family': 'Inter, sans-serif',
-                            'font-size': '0.75rem'})
-                    ], style={
-                        'background-color': '#ffffff', 'border-radius': '12px', 'padding': '16px 12px',
-                        'box-shadow': '0 1px 3px 0 rgba(0, 0, 0, 0.05)', 'border': '1px solid #e5e7eb',
-                        'flex': '1', 'min-width': '380px', 'overflow-x': 'auto'
-                    }),
-                    
-                    # Derecha: Tarjeta de gráfico de barras
-                    html.Div([
-                        html.H3("Unidades con Mayor Oportunidad de Monetización", style={'font-size': '1.125rem', 'font-weight': '700', 'color': '#10123C', 'margin-top': '0', 'margin-bottom': '16px', 'font-family': 'Outfit, sans-serif'}),
-                        dcc.Graph(figure=figura_barras_oportunidad, config={'displayModeBar': False})
-                    ], style={
-                        'background-color': '#ffffff', 'border-radius': '12px', 'padding': '24px',
-                        'box-shadow': '0 1px 3px 0 rgba(0, 0, 0, 0.05)', 'border': '1px solid #e5e7eb',
-                        'flex': '1', 'min-width': '380px'
-                    })
-                ], style={
-                    'display': 'flex', 
-                    'gap': '24px', 
-                    'margin-bottom': '24px', 
-                    'flex-wrap': 'wrap'}),
-                
-                # Fila 2: Curva de Pareto y Gráfico de barras agrupadas
-                html.Div([
-                    # Izquierda: Curva de Pareto
-                    html.Div([
-                        html.H3("Curva de Pareto (% Unidades vs % Potencial Económico)", style={
-                            'font-size': '1.125rem', 
-                            'font-weight': '700', 
-                            'color': '#10123C', 
-                            'margin-top': '0', 
-                            'margin-bottom': '16px', 
-                            'font-family': 'Outfit, sans-serif'}),
-                        dcc.Graph(figure=figura_pareto, config={'displayModeBar': False})
-                    ], style={
-                        'background-color': '#ffffff', 'border-radius': '12px', 'padding': '24px',
-                        'box-shadow': '0 1px 3px 0 rgba(0, 0, 0, 0.05)', 'border': '1px solid #e5e7eb',
-                        'flex': '1', 'min-width': '380px'
-                    }),
-                    
-                    # Derecha: Tarjeta de gráfico de barras agrupadas
-                    html.Div([
-                        html.H3("Desglose del Puntaje de Oportunidad", style={'font-size': '1.125rem', 'font-weight': '700', 'color': '#10123C', 'margin-top': '0', 'margin-bottom': '16px', 'font-family': 'Outfit, sans-serif'}),
-                        dcc.Graph(figure=figura_barras_agrupadas, config={'displayModeBar': False})
-                    ], style={
-                        'background-color': '#ffffff', 'border-radius': '12px', 'padding': '24px',
-                        'box-shadow': '0 1px 3px 0 rgba(0, 0, 0, 0.05)', 'border': '1px solid #e5e7eb',
-                        'flex': '1', 'min-width': '380px'
-                    })
-                ], style={'display': 'flex', 'gap': '24px', 'flex-wrap': 'wrap'})
+                dcc.Tabs(id="tabs-monetizacion", value='tab-analitico', children=[
+                    # Pestaña 1: Análisis de Oportunidades
+                    dcc.Tab(label='Análisis de Oportunidades (Actual)', value='tab-analitico', style={
+                        'padding': '12px 24px', 'font-family': 'Outfit, sans-serif', 'font-weight': '600', 'border': 'none',
+                        'background-color': '#f1f5f9', 'color': '#475569', 'border-radius': '6px 6px 0 0', 'margin-right': '4px'
+                    }, selected_style={
+                        'padding': '12px 24px', 'font-family': 'Outfit, sans-serif', 'font-weight': '700', 'border': 'none',
+                        'background-color': '#ffffff', 'color': '#1e3a8a', 'border-bottom': '4px solid #1d4ed8', 'border-radius': '6px 6px 0 0', 'margin-right': '4px'
+                    }, children=[
+                        html.Div([
+                            # Fila 1: Tabla y Gráfico de barras horizontales
+                            html.Div([
+                                # Izquierda: Tarjeta de tabla
+                                html.Div([
+                                    html.H3("Tabla de Prioridad Comercial (Tradicional)", style={'font-size': '1.125rem', 'font-weight': '700', 'color': '#10123C', 'margin-top': '0', 'margin-bottom': '16px', 'font-family': 'Outfit, sans-serif'}),
+                                    html.Table(cabecera_tabla_analitica + filas_tabla_analitica, style={
+                                        'width': '100%', 
+                                        'border-collapse': 'collapse', 
+                                        'font-family': 'Inter, sans-serif',
+                                        'font-size': '0.75rem'})
+                                ], style={
+                                    'background-color': '#ffffff', 'border-radius': '12px', 'padding': '24px 16px',
+                                    'box-shadow': '0 1px 3px 0 rgba(0, 0, 0, 0.05)', 'border': '1px solid #e5e7eb',
+                                    'flex': '1', 'min-width': '380px', 'overflow-x': 'auto'
+                                }),
+                                
+                                # Derecha: Tarjeta de gráfico de barras
+                                html.Div([
+                                    html.H3("Unidades con Mayor Oportunidad de Monetización", style={'font-size': '1.125rem', 'font-weight': '700', 'color': '#10123C', 'margin-top': '0', 'margin-bottom': '16px', 'font-family': 'Outfit, sans-serif'}),
+                                    dcc.Graph(figure=figura_barras_oportunidad, config={'displayModeBar': False})
+                                ], style={
+                                    'background-color': '#ffffff', 'border-radius': '12px', 'padding': '24px',
+                                    'box-shadow': '0 1px 3px 0 rgba(0, 0, 0, 0.05)', 'border': '1px solid #e5e7eb',
+                                    'flex': '1', 'min-width': '380px'
+                                })
+                            ], style={
+                                'display': 'flex', 
+                                'gap': '24px', 
+                                'margin-top': '20px',
+                                'margin-bottom': '24px', 
+                                'flex-wrap': 'wrap'}),
+                            
+                            # Fila 2: Curva de Pareto y Gráfico de barras agrupadas
+                            html.Div([
+                                # Izquierda: Curva de Pareto
+                                html.Div([
+                                    html.H3("Curva de Pareto (% Unidades vs % Potencial Económico)", style={
+                                        'font-size': '1.125rem', 
+                                        'font-weight': '700', 
+                                        'color': '#10123C', 
+                                        'margin-top': '0', 
+                                        'margin-bottom': '16px', 
+                                        'font-family': 'Outfit, sans-serif'}),
+                                    dcc.Graph(figure=figura_pareto, config={'displayModeBar': False})
+                                ], style={
+                                    'background-color': '#ffffff', 'border-radius': '12px', 'padding': '24px',
+                                    'box-shadow': '0 1px 3px 0 rgba(0, 0, 0, 0.05)', 'border': '1px solid #e5e7eb',
+                                    'flex': '1', 'min-width': '380px'
+                                }),
+                                
+                                # Derecha: Tarjeta de gráfico de barras agrupadas
+                                html.Div([
+                                    html.H3("Desglose del Puntaje de Oportunidad", style={'font-size': '1.125rem', 'font-weight': '700', 'color': '#10123C', 'margin-top': '0', 'margin-bottom': '16px', 'font-family': 'Outfit, sans-serif'}),
+                                    dcc.Graph(figure=figura_barras_agrupadas, config={'displayModeBar': False})
+                                ], style={
+                                    'background-color': '#ffffff', 'border-radius': '12px', 'padding': '24px',
+                                    'box-shadow': '0 1px 3px 0 rgba(0, 0, 0, 0.05)', 'border': '1px solid #e5e7eb',
+                                    'flex': '1', 'min-width': '380px'
+                                })
+                            ], style={'display': 'flex', 'gap': '24px', 'flex-wrap': 'wrap'})
+                        ])
+                    ]),
+
+                    # Pestaña 2: Predicción Comercial (XGBoost)
+                    dcc.Tab(label='Predicción Comercial', value='tab-predictivo', style={
+                        'padding': '12px 24px', 'font-family': 'Outfit, sans-serif', 'font-weight': '600', 'border': 'none',
+                        'background-color': '#f1f5f9', 'color': '#475569', 'border-radius': '6px 6px 0 0', 'margin-right': '4px'
+                    }, selected_style={
+                        'padding': '12px 24px', 'font-family': 'Outfit, sans-serif', 'font-weight': '700', 'border': 'none',
+                        'background-color': '#ffffff', 'color': '#1e3a8a', 'border-bottom': '4px solid #1d4ed8', 'border-radius': '6px 6px 0 0', 'margin-right': '4px'
+                    }, children=[
+                        html.Div([
+                            # Resumen y métricas del modelo
+                            html.Div([
+                                html.Div([
+                                    html.H4("Modelo Predictivo Comercial", style={'margin': '0 0 6px 0', 'color': '#1e3a8a', 'font-weight': '700'}),
+                                    html.P("Clasificador para identificar unidades con Alta Oportunidad de Monetización y Mantenimientos Críticos.",
+                                        style={'margin': '0', 
+                                        'font-size': '0.875rem', 
+                                        'color': '#475569'})
+                                ], style={'flex': '3'}),
+                                html.Div([
+                                    html.Div([
+                                        html.Span("AUC del Modelo", 
+                                                style={'font-size': '0.75rem', 
+                                                'color': '#64748b', 
+                                                'text-transform': 'uppercase', 
+                                                'font-weight': '600'}),
+                                        html.H3("1.00", style={'margin': '2px 0 0 0', 'color': '#16a34a', 'font-weight': '800'})
+                                    ], style={'background-color': '#f0fdf4', 
+                                            'padding': '10px 16px', 
+                                            'border-radius': '8px', 
+                                            'border': '1px solid #bbf7d0', 
+                                            'text-align': 'center', 
+                                            'min-width': '120px'})
+                                ], style={'display': 'flex', 
+                                        'align-items': 'center', 
+                                        'justify-content': 'flex-end', 
+                                        'flex': '1'})
+                            ], style={
+                                'background-color': '#eff6ff', 
+                                'border-radius': '12px', 
+                                'padding': '16px 24px', 
+                                'border': '1px solid #bfdbfe',
+                                'margin-top': '20px', 'margin-bottom': '24px', 'display': 'flex', 'flex-wrap': 'wrap', 'gap': '16px', 'align-items': 'center'
+                            }),
+
+                            # Fila 1: Tabla de Predicción y Gráfico de Importancia
+                            html.Div([
+                                # Izquierda: Tabla de Predicción Comercial
+                                html.Div([
+                                    html.H3("Tabla de Predicción Comercial",
+                                            style={
+                                                'font-size': '1.125rem', 
+                                                'font-weight': '700', 
+                                                'color': '#10123C', 
+                                                'margin-top': '0', 
+                                                'margin-bottom': '16px', 
+                                                'font-family': 'Outfit, sans-serif'
+                                                }),
+                                    html.Table(cabecera_tabla_prediccion + filas_tabla_prediccion,
+                                        style={
+                                        'width': '100%', 
+                                        'border-collapse': 'collapse', 
+                                        'font-family': 'Inter, sans-serif',
+                                        'font-size': '0.75rem'
+                                    })
+                                ], style={
+                                    'background-color': '#ffffff', 'border-radius': '12px', 'padding': '24px 16px',
+                                    'box-shadow': '0 1px 3px 0 rgba(0, 0, 0, 0.05)', 'border': '1px solid #e5e7eb',
+                                    'flex': '1.2', 'min-width': '380px', 'overflow-x': 'auto'
+                                }),
+                                
+                            ], style={'display': 'flex', 'gap': '24px', 'margin-bottom': '24px', 'flex-wrap': 'wrap'}),
+
+                            # Fila 2: Predicción de Riesgo de Retraso de Servicios
+                            html.Div([
+                                html.Div([
+                                    html.H3("Mantenimientos Pendientes con Mayor Riesgo de Quedar Inconclusos / Retrasados", 
+                                        style={
+                                            'font-size': '1.125rem',    
+                                            'font-weight': '700', 
+                                            'color': '#10123C', 
+                                            'margin-top': '0', 
+                                            'margin-bottom': '8px', 
+                                            'font-family': 'Outfit, sans-serif'
+                                            }),
+                                    html.P("Servicios activos que tienen mayor probabilidad de quedar estancados en estatus 'Pendiente' o 'CerradaFuera' según el clasificador XGBoost.", style={'font-size': '0.85rem', 'color': '#64748b', 'margin-bottom': '16px'}),
+                                    html.Table(cabecera_tabla_servicios + filas_tabla_servicios, style={
+                                        'width': '100%', 
+                                        'border-collapse': 'collapse', 
+                                        'font-family': 'Inter, sans-serif',
+                                        'font-size': '0.75rem'})
+                                ], style={
+                                    'background-color': '#ffffff', 'border-radius': '12px', 'padding': '24px 16px',
+                                    'box-shadow': '0 1px 3px 0 rgba(0, 0, 0, 0.05)', 'border': '1px solid #e5e7eb',
+                                    'flex': '1', 'min-width': '380px', 'overflow-x': 'auto'
+                                })
+                            ], style={'display': 'flex', 'gap': '24px', 'flex-wrap': 'wrap'})
+                        ])
+                    ])
+                ], style={'font-family': 'Outfit, sans-serif', 'font-size': '0.9rem'})
             ], style={'padding': '16px 0px', 'background-color': '#f8fafc', 'min-height': '100vh', 'font-family': 'Outfit, sans-serif'})
 
         except Exception as error_proceso:
+            import traceback
+            traceback.print_exc()
             return html.Div([
                 html.Div([
                     html.H3("Error al calcular la monetización", style={'color': '#ef4444', 'margin-bottom': '12px', 'font-weight': '600'}),

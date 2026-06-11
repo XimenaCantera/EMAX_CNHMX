@@ -38,12 +38,13 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
 
   const estiloContenedorPagina: React.CSSProperties = esContenedorCompleto
     ? {
-        padding: '8px 24px 24px 24px',
-        height: 'calc(100vh - 80px)',
+        padding: '0px 24px 24px 24px',
+        height: 'calc(100vh - 140px)',
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
-        backgroundColor: '#f8fafc'
+        backgroundColor: '#f8fafc',
+        overflow: 'hidden'
       }
     : {
         padding: '8px 0px 24px 0px',
@@ -54,7 +55,7 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
   const estiloAreaIframe: React.CSSProperties = {
     position: 'relative',
     width: '100%',
-    height: altura,
+    height: esContenedorCompleto ? '100%' : altura,
     backgroundColor: esContenedorCompleto ? '#ffffff' : 'transparent',
     borderRadius: esContenedorCompleto ? '12px' : '0px',
     border: esContenedorCompleto ? '1px solid #e5e7eb' : 'none',
@@ -94,12 +95,14 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
           src={iframeSrc}
           title={iframeTitle}
           width="100%"
-          height={altura}
+          height="100%"
           scrolling={esContenedorCompleto ? 'yes' : 'no'}
           style={{
             border: 'none',
             display: estaCargando ? 'none' : 'block',
-            overflow: esContenedorCompleto ? 'auto' : 'hidden'
+            overflow: esContenedorCompleto ? 'auto' : 'hidden',
+            height: '100%',
+            width: '100%'
           }}
         />
       </div>

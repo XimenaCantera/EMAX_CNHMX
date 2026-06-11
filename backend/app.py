@@ -1,8 +1,14 @@
 import os
+import sys
+
+# Agregar el directorio actual al path de Python para permitir ejecución desde cualquier lugar
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
+
 
 # Inicializar el servidor Flask principal
 servidor_flask = Flask(__name__)
