@@ -25,63 +25,77 @@ if not hasattr(Flask, 'before_first_request'):
     Flask.before_first_request = before_first_request
 
 # Validar los documentos y estandarizar el nombre para facilitar el análisis
-def clasificar_y_validar_archivo(df):
+def clasificar_y_validar_archivo(df, nombre_archivo):
+    nombre_lc = nombre_archivo.lower()
     columnas = [str(c).strip().lower() for c in df.columns]
     
     # Mantenimientos
-    columnas_mantenimiento = {'servicio', 'actual', 'estatus'}
-    if columnas_mantenimiento.issubset(set(columnas)):
-        return 'new_mantenimientos.xlsx', 'Mantenimientos', ['ALIAS', 'SERVICIO', 'ACTUAL', 'ESTATUS', 'DISTRIBUIDOR']
+    if 'mantenimiento' in nombre_lc:
+        columnas_req = ['alias', 'servicio', 'actual', 'estatus', 'distribuidor']
+        if all(col in columnas for col in columnas_req):
+            return 'new_mantenimientos.xlsx', 'Mantenimientos', ['ALIAS', 'SERVICIO', 'ACTUAL', 'ESTATUS', 'DISTRIBUIDOR'], True
+        # Soporte de respaldo por si alguna columna faltara
+        elif any(col in columnas for col in ['servicio', 'actual', 'hrmtro']):
+            return 'new_mantenimientos.xlsx', 'Mantenimientos', ['ALIAS', 'SERVICIO', 'ACTUAL', 'ESTATUS', 'DISTRIBUIDOR'], True
+        return 'new_mantenimientos.xlsx', 'Mantenimientos', ['ALIAS', 'SERVICIO', 'ACTUAL', 'ESTATUS', 'DISTRIBUIDOR'], False
         
     # Unidades
-    tiene_fecha_alta = any('fecha alta' in c or 'fecha_alta' in c or 'fechaalta' in c for c in columnas)
-    tiene_alias = any('alias' in c for c in columnas)
-    if tiene_fecha_alta and tiene_alias:
-        return 'new_unidades.xlsx', 'Unidades', ['Alias', 'Fecha Alta', 'Cerrados', 'C.Fuera', 'Pendientes', 'Horometro']
+    if 'unidad' in nombre_lc:
+        tiene_fecha_alta = ('fecha alta' in columnas) or ('fecha_alta' in columnas) or ('fechaalta' in columnas)
+        tiene_c_fuera = ('c.fuera' in columnas) or ('c_fuera' in columnas)
+        columnas_base = ['alias', 'cerrados', 'pendientes', 'horometro']
+        
+        if all(col in columnas for col in columnas_base) and tiene_fecha_alta and tiene_c_fuera:
+            return 'new_unidades.xlsx', 'Unidades', ['Alias', 'Fecha Alta', 'Cerrados', 'C.Fuera', 'Pendientes', 'Horometro'], True
+        return 'new_unidades.xlsx', 'Unidades', ['Alias', 'Fecha Alta', 'Cerrados', 'C.Fuera', 'Pendientes', 'Horometro'], False
         
     # Población (Severity)
-    tiene_vin = any('vin' in c or 'serie' in c for c in columnas)
-    tiene_severidad = any('severity' in c for c in columnas)
-    if tiene_vin and tiene_severidad:
-        return 'new_population.xlsx', 'Población', ['VIN (17 CHARACTERS)', 'SEVERITY LEVEL', 'MODEL']
+    if 'population' in nombre_lc or 'poblacion' in nombre_lc or 'población' in nombre_lc:
+        tiene_vin = ('vin (17 characters)' in columnas) or ('vin' in columnas) or ('no serie' in columnas) or ('no. serie' in columnas)
+        tiene_severity = ('severity level' in columnas) or ('severity' in columnas) or ('nivel severidad' in columnas)
+        tiene_model = ('model' in columnas) or ('modelo' in columnas)
+        
+        if tiene_vin and tiene_severity and tiene_model:
+            return 'new_population.xlsx', 'Población', ['VIN (17 CHARACTERS)', 'SEVERITY LEVEL', 'MODEL'], True
+        return 'new_population.xlsx', 'Población', ['VIN (17 CHARACTERS)', 'SEVERITY LEVEL', 'MODEL'], False
         
     # Horas
-    tiene_dia = any('día' in c or 'dia' in c or 'date' in c for c in columnas)
-    tiene_horas = any('horas' in c or 'hours' in c for c in columnas)
-    tiene_imei = any('imei' in c for c in columnas)
-    tiene_mensual = any(any(anio in c for anio in ['2023', '2024', '2025', '2026']) for c in columnas)
-    
-    if tiene_alias and (tiene_dia and tiene_horas):
-        return 'new_horas.xlsx', 'Horas de Trabajo', ['ALIAS', 'DÍA', 'HORAS']
-    elif tiene_alias and (tiene_imei or tiene_mensual):
-        return 'new_horas.xlsx', 'Horas de Trabajo', ['Alias', 'IMEI', 'Latitud', 'Longitud']
+    if 'hora' in nombre_lc:
+        tiene_alias = 'alias' in columnas
+        tiene_dia = ('dia' in columnas) or ('día' in columnas) or ('date' in columnas)
+        tiene_horas_col = ('horas' in columnas) or ('hours' in columnas)
+        tiene_imei = 'imei' in columnas
+        tiene_mensual = any('-' in col and (col.startswith('20') or col.startswith('19')) for col in columnas)
+        
+        if tiene_alias and tiene_dia and tiene_horas_col:
+            return 'new_horas.xlsx', 'Horas de Trabajo', ['ALIAS', 'DÍA', 'HORAS'], True
+        elif tiene_alias and (tiene_imei or tiene_mensual):
+            return 'new_horas.xlsx', 'Horas de Trabajo', ['Alias', 'IMEI', 'Latitud', 'Longitud'], True
+        return 'new_horas.xlsx', 'Horas de Trabajo', ['Alias', 'IMEI', 'Latitud', 'Longitud'], False
         
     # Ruteo
-    tiene_latitud = any('lat' in c for c in columnas)
-    tiene_longitud = any('lon' in c or 'lng' in c for c in columnas)
-    tiene_division = any('division' in c or 'división' in c for c in columnas)
-    tiene_distancia = any('distancia' in c for c in columnas)
-    
-    if tiene_division or tiene_distancia:
-        return 'new_ruteo.xlsx', 'Ruteo', ['Division', 'Distancia del Dia', 'Distancia de Ruta']
-    elif tiene_latitud and tiene_longitud and tiene_alias:
-        if not (tiene_imei or tiene_mensual):
-            return 'new_ruteo.xlsx', 'Ruteo', ['ALIAS', 'LATITUD', 'LONGITUD', 'RUTEO']
+    if 'ruteo' in nombre_lc:
+        tiene_lat = ('latitud' in columnas) or ('lat' in columnas)
+        tiene_lon = ('longitud' in columnas) or ('lon' in columnas) or ('lng' in columnas)
+        tiene_alias = 'alias' in columnas
+        tiene_division = ('division' in columnas) or ('división' in columnas)
+        tiene_dist_dia = ('distancia del dia' in columnas) or ('distancia_del_dia' in columnas) or ('distancia' in columnas)
+        tiene_dist_ruta = ('distancia de ruta' in columnas) or ('distancia_de_ruta' in columnas)
+        
+        if tiene_division and tiene_dist_dia and tiene_dist_ruta:
+            return 'new_ruteo.xlsx', 'Ruteo', ['Division', 'Distancia del Dia', 'Distancia de Ruta'], True
+        elif tiene_lat and tiene_lon and tiene_alias:
+            return 'new_ruteo.xlsx', 'Ruteo', ['ALIAS', 'LATITUD', 'LONGITUD'], True
+        return 'new_ruteo.xlsx', 'Ruteo', ['Division', 'Distancia del Dia', 'Distancia de Ruta'], False
         
     # Distribuidores
-    tiene_distribuidor = any('distribuidor' in c or 'dist' in c for c in columnas)
-    tiene_ciudad = any('ciudad' in c or 'city' in c for c in columnas)
-    tiene_estado = any('estado' in c or 'state' in c for c in columnas)
-    if tiene_distribuidor and tiene_ciudad and tiene_estado:
-        return 'new_distribuidor.xlsx', 'Distribuidor', ['DISTRIBUIDOR', 'CIUDAD', 'ESTADO', 'ZONA']
+    if 'distribuidor' in nombre_lc:
+        columnas_base = ['distribuidor', 'ciudad', 'estado']
+        if all(col in columnas for col in columnas_base):
+            return 'new_distribuidor.xlsx', 'Distribuidor', ['DISTRIBUIDOR', 'CIUDAD', 'ESTADO', 'ZONA'], True
+        return 'new_distribuidor.xlsx', 'Distribuidor', ['DISTRIBUIDOR', 'CIUDAD', 'ESTADO', 'ZONA'], False
         
-    # Reglas de respaldo si falla lo anterior
-    if any(x in columnas for x in ['servicio', 'actual', 'hrmtro']):
-        return 'new_mantenimientos.xlsx', 'Mantenimientos', ['ALIAS', 'SERVICIO', 'ACTUAL', 'ESTATUS', 'DISTRIBUIDOR']
-    if any(x in columnas for x in ['horometro', 'fecha alta', 'alias']) and 'pendientes' in columnas:
-        return 'new_unidades.xlsx', 'Unidades', ['Alias', 'Fecha Alta', 'Cerrados', 'C.Fuera', 'Pendientes', 'Horometro']
-        
-    return None, None, []
+    return None, None, [], False
 
 @app.route('/api/status', methods=['GET'])
 def obtener_estado():
@@ -130,13 +144,21 @@ def subir_archivos():
             bytes_archivo = archivo.read()
             df = pd.read_excel(io.BytesIO(bytes_archivo))
             
-            nombre_destino, tipo_archivo, columnas_requeridas = clasificar_y_validar_archivo(df)
+            nombre_destino, tipo_archivo, columnas_requeridas, columnas_validas = clasificar_y_validar_archivo(df, archivo.filename)
             
             if not nombre_destino:
                 resultados.append({
                     "filename": archivo.filename,
                     "success": False,
-                    "error": "El archivo no pudo ser clasificado. Asegúrese de que el documento contiene las columnas correctas."
+                    "error": "Error de nombre: El nombre del archivo no es reconocido. Asegúrate de incluir el tipo en el nombre (ej. 'mantenimientos.xlsx', 'horas.xlsx', 'ruteo.xlsx', etc.) para que el sistema sepa qué base de datos es."
+                })
+                continue
+                
+            if not columnas_validas:
+                resultados.append({
+                    "filename": archivo.filename,
+                    "success": False,
+                    "error": f"Error de contenido (Excel incorrecto): El archivo '{archivo.filename}' se identificó como '{tipo_archivo}', pero no contiene las columnas necesarias. Asegúrate de haber subido el excel correcto. Columnas requeridas: {', '.join(columnas_requeridas)}"
                 })
                 continue
                 

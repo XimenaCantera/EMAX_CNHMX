@@ -121,21 +121,29 @@ export const ImportPage: React.FC = () => {
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
+      if (response.ok && data.results) {
         setImportedResults(data.results);
 
-        const successCount = data.success_count;
-        const totalCount = data.total_count;
+        const successCount = data.success_count ?? 0;
+        const totalCount = data.total_count ?? 0;
 
-        if (successCount === totalCount) {
+        if (successCount === totalCount && totalCount > 0) {
           setSuccessMsg(`¡Se cargaron correctamente los ${totalCount} archivos!`);
-        } else {
+          setErrorMsg(null);
+        } else if (successCount > 0) {
           setSuccessMsg(`Carga parcial: ${successCount} de ${totalCount} archivos se procesaron con éxito.`);
           const failures = data.results
             .filter((r: any) => !r.success)
             .map((r: any) => `${r.filename}: ${r.error}`)
             .join(', ');
           setErrorMsg(`Errores en archivos: ${failures}`);
+        } else {
+          setSuccessMsg(null);
+          const failures = data.results
+            .filter((r: any) => !r.success)
+            .map((r: any) => `${r.filename}: ${r.error}`)
+            .join(', ');
+          setErrorMsg(`Error en la carga: ${failures || data.error || "Ningún archivo pudo ser procesado."}`);
         }
 
         // Buscar el índice del primer archivo exitoso para previsualizarlo
