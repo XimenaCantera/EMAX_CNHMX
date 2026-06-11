@@ -106,6 +106,9 @@ export const FugaServicios: React.FC = () => {
 
   return (
     <div className={styles.container}>
+      <div className="page-header" style={{ marginBottom: '20px' }}>
+        <h1>Fuga de servicios</h1>
+      </div>
       <div className={styles.kpiContainer}>
         <div className={styles.kpiCard}>
           <div className={styles.kpiIcon}><Wrench size={24} /></div>
@@ -189,11 +192,19 @@ export const FugaServicios: React.FC = () => {
 
         <div className={styles.chartsSection}>
           <iframe
-            src="http://127.0.0.1:5000/dash/fuga/"
+            src="http://127.0.0.1:5000/dash/fuga/?chart=side"
             className={styles.dashIframe}
             title="Dash Graphs"
           ></iframe>
         </div>
+      </div>
+
+      <div className={styles.bottomChartSection}>
+        <iframe
+          src="http://127.0.0.1:5000/dash/fuga/?chart=bottom"
+          className={styles.dashIframeBottom}
+          title="Distribution Graph"
+        ></iframe>
       </div>
     </div>
   );

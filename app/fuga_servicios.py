@@ -117,6 +117,7 @@ def init_fuga_servicios(server):
     app_dash.index_string = PLANTILLA_HTML_CARGANDO
 
     def serve_layout():
+        from flask import request
         df_mantenimientos = cargar_datos_mantenimiento()
         if df_mantenimientos.empty:
             return html.Div([
@@ -138,22 +139,12 @@ def init_fuga_servicios(server):
             'EnProceso': '#c4b5fd'
         }
 
-        fig_hist = px.histogram(df_mantenimientos, x="retraso_horas", title="Distribución de retraso en horas", color_discrete_sequence=['#4f46e5'])
-        fig_hist.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-            font_family='Outfit, sans-serif', font_color='#1e293b',
-            title_font_size=18, title_font_color='#0f172a', title_font_family='Outfit, sans-serif',
-            margin=dict(l=20, r=20, t=40, b=40), height=350,
-            xaxis=dict(gridcolor='#e2e8f0', linecolor='#cbd5e1', zeroline=False),
-            yaxis=dict(gridcolor='#e2e8f0', linecolor='#cbd5e1', zeroline=False)
-        )
-
         fig_bar = px.histogram(df_mantenimientos[df_mantenimientos['ESTATUS'].isin(['Pendiente'])], x="DISTRIBUIDOR", title="Servicios en fuga por distribuidor", color_discrete_sequence=['#ef4444'])
         fig_bar.update_layout(
             plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
             font_family='Outfit, sans-serif', font_color='#1e293b',
             title_font_size=18, title_font_color='#0f172a', title_font_family='Outfit, sans-serif',
-            margin=dict(l=20, r=20, t=40, b=120), xaxis_tickangle=-90, height=350,
+            margin=dict(l=10, r=10, t=40, b=120), xaxis_tickangle=-90, height=420,
             xaxis=dict(gridcolor='#e2e8f0', linecolor='#cbd5e1', zeroline=False),
             yaxis=dict(gridcolor='#e2e8f0', linecolor='#cbd5e1', zeroline=False)
         )
@@ -163,7 +154,17 @@ def init_fuga_servicios(server):
             plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
             font_family='Outfit, sans-serif', font_color='#1e293b',
             title_font_size=18, title_font_color='#0f172a', title_font_family='Outfit, sans-serif',
-            margin=dict(l=20, r=20, t=40, b=20), height=350
+            margin=dict(l=10, r=10, t=40, b=20), height=420
+        )
+
+        fig_hist = px.histogram(df_mantenimientos, x="retraso_horas", title="Distribución de retraso en horas", color_discrete_sequence=['#3f46e5'], range_x=[-500, 6000])
+        fig_hist.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+            font_family='Outfit, sans-serif', font_color='#0e293b',
+            title_font_size=17, title_font_color='#0f172a', title_font_family='Outfit, sans-serif',
+            margin=dict(l=9, r=10, t=40, b=40), height=420,
+            xaxis=dict(gridcolor='#e1e8f0', linecolor='#cbd5e1', zeroline=False),
+            yaxis=dict(gridcolor='#e1e8f0', linecolor='#cbd5e1', zeroline=False)
         )
 
         style_box = {
@@ -171,15 +172,36 @@ def init_fuga_servicios(server):
             'borderRadius': '16px', 
             'marginBottom': '20px', 
             'border': '1px solid #e5e7eb',
-            'padding': '20px',
+            'padding': '12px',
             'boxShadow': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.05)'
         }
 
-        return html.Div([
-            html.Div([dcc.Graph(figure=fig_hist, config={'displayModeBar': False})], style=style_box),
-            html.Div([dcc.Graph(figure=fig_bar, config={'displayModeBar': False})], style=style_box),
-            html.Div([dcc.Graph(figure=fig_pie, config={'displayModeBar': False})], style={**style_box, 'marginBottom': '0px'})
-        ], style={'backgroundColor': 'transparent', 'padding': '5px', 'font-family': 'Outfit, sans-serif'})
+        from flask import has_request_context
+        chart_type = None
+        if has_request_context():
+            chart_type = request.args.get('chart')
+            if not chart_type and request.referrer:
+                from urllib.parse import urlparse, parse_qs
+                try:
+                    parsed = urlparse(request.referrer)
+                    chart_type = parse_qs(parsed.query).get('chart', [None])[0]
+                except Exception:
+                    pass
+        if chart_type == 'bottom':
+            return html.Div([
+                html.Div([dcc.Graph(figure=fig_hist, config={'displayModeBar': False})], style={**style_box, 'marginBottom': '0px'})
+            ], style={'backgroundColor': 'transparent', 'padding': '5px', 'font-family': 'Outfit, sans-serif'})
+        elif chart_type == 'side':
+            return html.Div([
+                html.Div([dcc.Graph(figure=fig_bar, config={'displayModeBar': False})], style=style_box),
+                html.Div([dcc.Graph(figure=fig_pie, config={'displayModeBar': False})], style={**style_box, 'marginBottom': '0px'})
+            ], style={'backgroundColor': 'transparent', 'padding': '5px', 'font-family': 'Outfit, sans-serif'})
+        else:
+            return html.Div([
+                html.Div([dcc.Graph(figure=fig_hist, config={'displayModeBar': False})], style=style_box),
+                html.Div([dcc.Graph(figure=fig_bar, config={'displayModeBar': False})], style=style_box),
+                html.Div([dcc.Graph(figure=fig_pie, config={'displayModeBar': False})], style={**style_box, 'marginBottom': '0px'})
+            ], style={'backgroundColor': 'transparent', 'padding': '5px', 'font-family': 'Outfit, sans-serif'})
 
     app_dash.layout = serve_layout
     return app_dash

@@ -1,7 +1,7 @@
 .container {
-  padding: 2rem;
-  background-color: #f3f4f6;
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
 }
 
 .kpiContainer {
@@ -45,19 +45,19 @@
 }
 
 .contentLayout {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 2rem;
-  align-items: stretch;
 }
 
 .tableSection {
-  flex: 1.1;
   background-color: white;
   border-radius: 16px;
   padding: 1.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .tableWrapper {
@@ -72,24 +72,25 @@
 }
 
 .dataTable th {
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   font-weight: 600;
   color: #111827;
   border-bottom: 1px solid #e5e7eb;
+  font-size: 0.8rem;
 }
 
 .dataTable td {
-  padding: 1rem;
-  font-size: 0.875rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
   color: #374151;
   border-bottom: 1px solid #f3f4f6;
 }
 
 .badge {
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 9999px;
   font-weight: 500;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
 }
 
 .estatusPendiente { background-color: #fef2f2; color: #ef4444; }
@@ -130,17 +131,32 @@
 }
 
 .chartsSection {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 1400px;
+  min-height: 880px;
+  min-width: 0;
 }
 
 .dashIframe {
   width: 100%;
   height: 100%;
   border: none;
-  min-height: 1400px;
+  min-height: 880px;
+}
+
+.bottomChartSection {
+  width: 100%;
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 460px;
+}
+
+.dashIframeBottom {
+  width: 100%;
+  height: 100%;
+  border: none;
+  min-height: 460px;
 }
 
 .loading {
