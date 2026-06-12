@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Cargador } from '../common/cargador';
 import { SinDatos } from '../common/SinDatos';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL } from '../../../config';
 
 interface PropiedadesContenedorTablero {
   titulo: string;
