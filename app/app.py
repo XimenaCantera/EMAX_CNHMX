@@ -57,9 +57,15 @@ def obtener_dashboard():
         encontro_en_cache = dashboard._CACHE_DASHBOARD is not None
         
         # Verificar si existen los archivos antes de continuar
-        ruta_mantenimientos = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_mantenimientos.xlsx')
-        ruta_unidades = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_unidades.xlsx')
-        if not os.path.exists(ruta_mantenimientos) or not os.path.exists(ruta_unidades):
+        ruta_mantenimientos_csv = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_mantenimientos.csv')
+        ruta_unidades_csv = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_unidades.csv')
+        ruta_mantenimientos_xlsx = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_mantenimientos.xlsx')
+        ruta_unidades_xlsx = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_unidades.xlsx')
+        
+        has_maint = os.path.exists(ruta_mantenimientos_csv) or os.path.exists(ruta_mantenimientos_xlsx)
+        has_unidades = os.path.exists(ruta_unidades_csv) or os.path.exists(ruta_unidades_xlsx)
+
+        if not has_maint or not has_unidades:
             return jsonify({
                 "success": False,
                 "no_data": True,
@@ -91,8 +97,9 @@ def obtener_dashboard():
 @app.route('/api/distribuidores', methods=['GET'])
 def obtener_distribuidores_api():
     try:
-        ruta_mantenimientos = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_mantenimientos.xlsx')
-        if not os.path.exists(ruta_mantenimientos):
+        ruta_mantenimientos_csv = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_mantenimientos.csv')
+        ruta_mantenimientos_xlsx = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_mantenimientos.xlsx')
+        if not os.path.exists(ruta_mantenimientos_csv) and not os.path.exists(ruta_mantenimientos_xlsx):
             return jsonify({
                 "success": False,
                 "no_data": True,

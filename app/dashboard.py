@@ -16,12 +16,21 @@ def limpiar_cache():
 def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=False):
     tiempo_inicio = time.time()
 
-    ruta_mantenimientos = f"{directorio_archivos_limpios}/new_mantenimientos.xlsx"
-    ruta_unidades = f"{directorio_archivos_limpios}/new_unidades.xlsx"
+    ruta_mantenimientos_csv = f"{directorio_archivos_limpios}/new_mantenimientos.csv"
+    ruta_unidades_csv = f"{directorio_archivos_limpios}/new_unidades.csv"
+    ruta_mantenimientos_xlsx = f"{directorio_archivos_limpios}/new_mantenimientos.xlsx"
+    ruta_unidades_xlsx = f"{directorio_archivos_limpios}/new_unidades.xlsx"
         
     # Cargar los datos
-    mantenimientos = pd.read_excel(ruta_mantenimientos)
-    unidades = pd.read_excel(ruta_unidades)
+    if os.path.exists(ruta_mantenimientos_csv):
+        mantenimientos = pd.read_csv(ruta_mantenimientos_csv)
+    else:
+        mantenimientos = pd.read_excel(ruta_mantenimientos_xlsx)
+
+    if os.path.exists(ruta_unidades_csv):
+        unidades = pd.read_csv(ruta_unidades_csv)
+    else:
+        unidades = pd.read_excel(ruta_unidades_xlsx)
     
     # Validar si las columnas existen, si no, crear con 0 para no tronar
     if 'Pendientes' not in unidades.columns:
@@ -64,7 +73,11 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
     if archivos_riesgo:
         ruta_riesgo = archivos_riesgo[0]
         try:
-            df_riesgo = pd.read_excel(ruta_riesgo, sheet_name='Tabla_Riesgo_Final')
+            ruta_riesgo_csv = ruta_riesgo.replace('.xlsx', '_Tabla_Riesgo_Final.csv')
+            if os.path.exists(ruta_riesgo_csv):
+                df_riesgo = pd.read_csv(ruta_riesgo_csv)
+            else:
+                df_riesgo = pd.read_excel(ruta_riesgo, sheet_name='Tabla_Riesgo_Final')
             
             # Contar según la columna solicitada
             if 'Nivel de riesgo' in df_riesgo.columns:
@@ -333,9 +346,13 @@ def obtener_data(directorio_archivos_limpios, forzar_actualizacion=False):
         return resultado
 
 def obtener_datos_distribuidores(directorio_archivos_limpios):
-    ruta_mantenimientos = f"{directorio_archivos_limpios}/new_mantenimientos.xlsx"
+    ruta_mantenimientos_csv = f"{directorio_archivos_limpios}/new_mantenimientos.csv"
+    ruta_mantenimientos_xlsx = f"{directorio_archivos_limpios}/new_mantenimientos.xlsx"
     try:
-        mtime = os.path.getmtime(ruta_mantenimientos)
+        if os.path.exists(ruta_mantenimientos_csv):
+            mtime = os.path.getmtime(ruta_mantenimientos_csv)
+        else:
+            mtime = os.path.getmtime(ruta_mantenimientos_xlsx)
     except Exception:
         mtime = 0
         
@@ -344,7 +361,10 @@ def obtener_datos_distribuidores(directorio_archivos_limpios):
         return _CACHE_DISTRIBUIDORES['data']
 
     try:
-        mantenimientos = pd.read_excel(ruta_mantenimientos)
+        if os.path.exists(ruta_mantenimientos_csv):
+            mantenimientos = pd.read_csv(ruta_mantenimientos_csv)
+        else:
+            mantenimientos = pd.read_excel(ruta_mantenimientos_xlsx)
     except Exception:
         mantenimientos = pd.DataFrame()
 

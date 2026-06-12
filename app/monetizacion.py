@@ -58,12 +58,20 @@ def inicializar_monetizacion(servidor_flask):
 
     # Diseño dinámico del tablero.
     def servir_diseno_dashboard():        
-        ruta_mantenimientos = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_mantenimientos.xlsx')
-        ruta_unidades = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_unidades.xlsx')
-        ruta_poblacion = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_population.xlsx')
+        ruta_mantenimientos_csv = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_mantenimientos.csv')
+        ruta_unidades_csv = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_unidades.csv')
+        ruta_poblacion_csv = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_population.csv')
+
+        ruta_mantenimientos_xlsx = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_mantenimientos.xlsx')
+        ruta_unidades_xlsx = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_unidades.xlsx')
+        ruta_poblacion_xlsx = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_population.xlsx')
 
         # Verificar que existan todos los datasets antes de continuar
-        if not all(os.path.exists(p) for p in [ruta_mantenimientos, ruta_unidades, ruta_poblacion]):
+        has_maint = os.path.exists(ruta_mantenimientos_csv) or os.path.exists(ruta_mantenimientos_xlsx)
+        has_unidades = os.path.exists(ruta_unidades_csv) or os.path.exists(ruta_unidades_xlsx)
+        has_poblacion = os.path.exists(ruta_poblacion_csv) or os.path.exists(ruta_poblacion_xlsx)
+
+        if not (has_maint and has_unidades and has_poblacion):
             return html.Div([
                 html.Div([
                     html.H3("Faltan archivos de datos para mostrar la monetización", 
@@ -78,7 +86,10 @@ def inicializar_monetizacion(servidor_flask):
 
         global _CACHE_MONETIZACION
         try:
-            mtime_sum = os.path.getmtime(ruta_mantenimientos) + os.path.getmtime(ruta_unidades) + os.path.getmtime(ruta_poblacion)
+            mtime_maint = os.path.getmtime(ruta_mantenimientos_csv) if os.path.exists(ruta_mantenimientos_csv) else os.path.getmtime(ruta_mantenimientos_xlsx)
+            mtime_unidades = os.path.getmtime(ruta_unidades_csv) if os.path.exists(ruta_unidades_csv) else os.path.getmtime(ruta_unidades_xlsx)
+            mtime_poblacion = os.path.getmtime(ruta_poblacion_csv) if os.path.exists(ruta_poblacion_csv) else os.path.getmtime(ruta_poblacion_xlsx)
+            mtime_sum = mtime_maint + mtime_unidades + mtime_poblacion
         except Exception:
             mtime_sum = 0
 
@@ -87,9 +98,20 @@ def inicializar_monetizacion(servidor_flask):
 
         try:
             # Cargar datos desde los archivos
-            df_mantenimientos = pd.read_excel(ruta_mantenimientos)
-            df_reporte = pd.read_excel(ruta_unidades)
-            df_poblacion = pd.read_excel(ruta_poblacion)
+            if os.path.exists(ruta_mantenimientos_csv):
+                df_mantenimientos = pd.read_csv(ruta_mantenimientos_csv)
+            else:
+                df_mantenimientos = pd.read_excel(ruta_mantenimientos_xlsx)
+
+            if os.path.exists(ruta_unidades_csv):
+                df_reporte = pd.read_csv(ruta_unidades_csv)
+            else:
+                df_reporte = pd.read_excel(ruta_unidades_xlsx)
+
+            if os.path.exists(ruta_poblacion_csv):
+                df_poblacion = pd.read_csv(ruta_poblacion_csv)
+            else:
+                df_poblacion = pd.read_excel(ruta_poblacion_xlsx)
             
             # Calcular retrasos en mantenimientos
             df_mantenimientos['delay_vs_service_interval'] = df_mantenimientos['ACTUAL'] - df_mantenimientos['SERVICIO']

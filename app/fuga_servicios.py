@@ -11,11 +11,15 @@ CLEAN_FILES_DIR = os.path.join(BASE_DIR, 'data', 'ArchivosLimpios')
 
 def cargar_datos_mantenimiento():
     maint_path = os.path.join(CLEAN_FILES_DIR, 'new_mantenimientos.xlsx')
-    if not os.path.exists(maint_path):
-        return pd.DataFrame()
-        
+    maint_csv = os.path.join(CLEAN_FILES_DIR, 'new_mantenimientos.csv')
     try:
-        df = pd.read_excel(maint_path)
+        if os.path.exists(maint_csv):
+            df = pd.read_csv(maint_csv)
+        elif os.path.exists(maint_path):
+            df = pd.read_excel(maint_path)
+        else:
+            return pd.DataFrame()
+            
         if not df.empty:
             df['HRMTRO'] = df['HRMTRO'].fillna(0)
             df['ACTUAL'] = df['ACTUAL'].fillna(0)
@@ -24,7 +28,7 @@ def cargar_datos_mantenimiento():
             df['Acción recomendada'] = 'Contactar unidad'
         return df
     except Exception as e:
-        print(f"[FUGA] Error al cargar excel: {e}")
+        print(f"[FUGA] Error al cargar datos: {e}")
         return pd.DataFrame()
 
 def init_fuga_servicios(server):

@@ -149,9 +149,13 @@ def init_importador(app):
                 ruta_destino = os.path.join(DIR_ARCHIVOS_LIMPIOS, nombre_destino)
                 
                 # Combinar automáticamente con datos existentes si el archivo ya existe
-                if os.path.exists(ruta_destino):
+                ruta_csv_existente = ruta_destino.replace('.xlsx', '.csv')
+                if os.path.exists(ruta_csv_existente) or os.path.exists(ruta_destino):
                     try:
-                        df_existente = pd.read_excel(ruta_destino)
+                        if os.path.exists(ruta_csv_existente):
+                            df_existente = pd.read_csv(ruta_csv_existente)
+                        else:
+                            df_existente = pd.read_excel(ruta_destino)
                         df_combinado = pd.concat([df_existente, df], ignore_index=True)
                         
                         # Deduplicar según las columnas clave del archivo
@@ -185,6 +189,7 @@ def init_importador(app):
                     df_combinado = df
                     
                 df_combinado.to_excel(ruta_destino, index=False)
+                df_combinado.to_csv(ruta_destino.replace('.xlsx', '.csv'), index=False)
                 
                 cantidad_filas = len(df)
                 lista_columnas = [str(c) for c in df.columns]

@@ -34,7 +34,13 @@ def _cargar_y_procesar_datos(maint_path):
     inicio = time.time()
     print(f"[RIESGO] Procesando datos desde {maint_path}...")
 
-    maint_df = pd.read_excel(maint_path)
+    maint_csv = maint_path.replace(".xlsx", ".csv")
+    if os.path.exists(maint_csv):
+        maint_df = pd.read_csv(maint_csv)
+        if 'FECHA' in maint_df.columns:
+            maint_df['FECHA'] = pd.to_datetime(maint_df['FECHA'], errors='coerce')
+    else:
+        maint_df = pd.read_excel(maint_path)
 
     # Procesar los datos
     maint_df['delay_vs_service_interval'] = maint_df['ACTUAL'] - maint_df['SERVICIO']
@@ -200,7 +206,9 @@ def _cargar_y_procesar_datos(maint_path):
 def _obtener_datos_cacheados(maint_path):
     """Devuelve los datos cacheados si el archivo no ha cambiado, sino reprocesa."""
     global _cache_riesgo
-    current_mtime = os.path.getmtime(maint_path)
+    maint_csv = maint_path.replace(".xlsx", ".csv")
+    active_path = maint_csv if os.path.exists(maint_csv) else maint_path
+    current_mtime = os.path.getmtime(active_path)
 
     if _cache_riesgo['mtime'] == current_mtime and _cache_riesgo['maint_df'] is not None:
         print("[RIESGO] Sirviendo desde caché (instantáneo)")
