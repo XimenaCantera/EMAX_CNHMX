@@ -4,6 +4,7 @@ import { SinDatos } from '../common/SinDatos';
 
 interface PropiedadesContenedorTablero {
   titulo: string;
+  descripcion?: string;
   iframeSrc: string;
   iframeTitle: string;
   textoCargando: string;
@@ -14,6 +15,7 @@ interface PropiedadesContenedorTablero {
 
 export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
   titulo,
+  descripcion,
   iframeSrc,
   iframeTitle,
   textoCargando,
@@ -35,13 +37,13 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
           setDataExists(true);
         }
       } catch (err) {
-        setDataExists(true); // fallback to try loading
+        setDataExists(true);
       }
     };
     checkData();
 
     const alRecibirMensaje = (evento: MessageEvent) => {
-      // Verificar si el mensaje proviene de nuestro tablero Dash
+      // Ver si el mensaje viene del tablero Dash
       if (evento.data && evento.data.type === 'DASH_LOADED') {
         establecerEstaCargando(false);
       }
@@ -55,19 +57,19 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
 
   const estiloContenedorPagina: React.CSSProperties = esContenedorCompleto
     ? {
-        padding: '0px 24px 24px 24px',
-        height: 'calc(100vh - 140px)',
-        display: 'flex',
-        flexDirection: 'column',
-        boxSizing: 'border-box',
-        backgroundColor: '#f8fafc',
-        overflow: 'hidden'
-      }
+      padding: '0px 24px 24px 24px',
+      height: 'calc(100vh - 140px)',
+      display: 'flex',
+      flexDirection: 'column',
+      boxSizing: 'border-box',
+      backgroundColor: '#f8fafc',
+      overflow: 'hidden'
+    }
     : {
-        padding: '8px 0px 24px 0px',
-        boxSizing: 'border-box',
-        backgroundColor: '#f8fafc'
-      };
+      padding: '8px 0px 24px 0px',
+      boxSizing: 'border-box',
+      backgroundColor: '#f8fafc'
+    };
 
   const estiloAreaIframe: React.CSSProperties = {
     position: 'relative',
@@ -88,9 +90,9 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
   if (dataExists === null) {
     return (
       <div style={estiloContenedorPagina}>
-        <Cargador 
-          texto={textoCargando} 
-          colorFondo={colorFondoCargador} 
+        <Cargador
+          texto={textoCargando}
+          colorFondo={colorFondoCargador}
         />
       </div>
     );
@@ -101,8 +103,9 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
       <div style={{
         marginBottom: '16px',
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start'
       }}>
         <h1 style={{
           fontSize: '2.25rem',
@@ -114,13 +117,18 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
         }}>
           {titulo}
         </h1>
+        {descripcion && (
+          <p className="text-muted" style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '6px', marginBottom: 0 }}>
+            {descripcion}
+          </p>
+        )}
       </div>
 
       <div style={estiloAreaIframe}>
         {estaCargando && (
-          <Cargador 
-            texto={textoCargando} 
-            colorFondo={colorFondoCargador} 
+          <Cargador
+            texto={textoCargando}
+            colorFondo={colorFondoCargador}
           />
         )}
         <iframe

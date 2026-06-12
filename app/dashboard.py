@@ -20,7 +20,6 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
     ruta_unidades = f"{directorio_archivos_limpios}/new_unidades.xlsx"
         
     # Cargar los datos
-    # Solo necesitamos estos dos archivos según las reglas
     mantenimientos = pd.read_excel(ruta_mantenimientos)
     unidades = pd.read_excel(ruta_unidades)
     
@@ -30,14 +29,13 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
     if 'C.Fuera' not in unidades.columns:
         unidades['C.Fuera'] = 0
         
-    # Limpiar columnas: asegurar que sean números y rellenar vacíos con 0
+    # Limpiar columnas y asegurar que sean números, sino rellena los vacíos con 0
     unidades['Pendientes'] = pd.to_numeric(unidades['Pendientes'], errors='coerce').fillna(0)
     unidades['C.Fuera'] = pd.to_numeric(unidades['C.Fuera'], errors='coerce').fillna(0)
     
-    # Columna auxiliar base pedida
     unidades['servicios_oportunidad'] = unidades['Pendientes'] + unidades['C.Fuera']
 
-    # --- 1. Card: Servicios en oportunidad ---
+    # Servicios en oportunidad
     # Estatus permitidos
     estatus_oportunidad = ['Pendiente', 'PorVencer', 'EnProceso', 'Abierta']
     if 'ESTATUS' in mantenimientos.columns:
@@ -45,20 +43,19 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
     else:
         oportunidades_activas = 0
 
-    # --- 2. Card: Próximos servicios 30 días ---
+    # Próximos servicios 30 días
     if 'ESTATUS' in mantenimientos.columns:
         proximos_servicios = int((mantenimientos['ESTATUS'] == 'PorVencer').sum())
     else:
         proximos_servicios = 0
 
-    # --- 3. Card: Unidades con alta carga de oportunidad ---
+    # Unidades con alta carga de oportunidad
     unidades_alta_carga = int((unidades['servicios_oportunidad'] > 7).sum())
 
-    # --- (Extra) Valor potencial global ---
+    # Calcular el valor potencial global
     valor_potencial = oportunidades_activas * 3500
 
-    # --- 4. Dona: Urgencia de servicios ---
-    # Leer específicamente del archivo en data/archivos_compañia/
+    # Urgencia de servicios
     import glob
     directorio_base = os.path.dirname(directorio_archivos_limpios)
     directorio_compania = os.path.join(directorio_base, 'archivos_compañia')
@@ -95,7 +92,7 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
     else:
         porcentaje_critico, porcentaje_alto, porcentaje_medio, porcentaje_bajo = 0.0, 0.0, 0.0, 0.0
 
-    # --- 5. Top servicios con mayor oportunidad ---
+    # Top servicios con mayor oportunidad
     # Filtrar por servicios con 300 a 600 horas por la mayor oportunidad de aftermarket
     if 'Horometro' in unidades.columns:
         horometro_num = pd.to_numeric(unidades['Horometro'], errors='coerce').fillna(0)
@@ -141,14 +138,13 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
     top_oportunidades = [formatear_oportunidad(fila) for _, fila in mejores_unidades.iterrows()]
     todas_oportunidades = [formatear_oportunidad(fila) for _, fila in todas_las_unidades.iterrows()]
 
-    # --- 6. Mapa Interactivo y Nota Ejecutiva ---
+    # Mapa Interactivo y Nota Ejecutiva
     import plotly.express as px
     
     html_mapa = ""
     nota_ejecutiva = "No hay suficientes datos para generar la recomendación de foco."
     
     if archivos_riesgo and 'df_riesgo' in locals():
-        # Columnas seguras (con .get para evitar errores si falta alguna)
         cols_riesgo = ["Alias", "Nivel de riesgo", "Score riesgo", "Pendientes", "Cerrada fuera", "Backlog", "Atraso máx hrs", "Horómetro"]
         cols_riesgo_existentes = [c for c in cols_riesgo if c in df_riesgo.columns]
         df_riesgo_base = df_riesgo[cols_riesgo_existentes].copy()
@@ -165,7 +161,7 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
             df_mapa = df_mapa.dropna(subset=["Latitud", "Longitud"])
             df_mapa = df_mapa[(df_mapa["Latitud"] != 0) & (df_mapa["Longitud"] != 0)]
         
-            # Agrupación requerida
+            # Agrupamos
             mapa_agrupado = df_mapa.groupby(
                 ["Estado", "Ciudad", "Distribuidor", "Latitud", "Longitud", "Nivel de riesgo"],
                 dropna=False
@@ -183,10 +179,10 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
             # Filtrar críticos y altos
             niveles_prioritarios = ["Crítico", "Alto"]
             mapa_prioritario = mapa_agrupado[mapa_agrupado["Nivel de riesgo"].astype(str).str.strip().isin(niveles_prioritarios)].copy()
-            
+        
             print(f"Total de unidades Crítico + Alto graficadas: {mapa_prioritario['unidades'].sum()}")
             
-            # Crear figura
+            # Crear mapa
             colores_riesgo = {"Crítico": "#20235C", "Alto": "#B45309"}
             escalaPuntosMapa = 6
             fig = px.scatter_mapbox(
@@ -250,7 +246,7 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
                 
                 nota_ejecutiva = f"Foco recomendado: {texto_estados}. Estos estados concentran la mayor carga de unidades críticas y altas, por lo que representan la mejor zona inicial para activar seguimiento técnico, contacto con distribuidores y recuperación de servicios."
 
-        # Calcular top 5 ciudades desde df_mapa si existe (porque tiene la columna Ciudad)
+        # Calcular top 5 ciudades desde df_mapa
         top_5_ciudades = []
         if 'df_mapa' in locals() and "Ciudad" in df_mapa.columns and "Estado" in df_mapa.columns:
             df_mapa_prioritario = df_mapa[df_mapa["Nivel de riesgo"].astype(str).str.strip().isin(niveles_prioritarios)].copy()
@@ -276,7 +272,7 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
                     ascending=False
                 ).head(5)
                 
-                # Convertir a dict
+                # Convertir a diccionario
                 for _, row in top_ciudades.iterrows():
                     top_5_ciudades.append({
                         "Ciudad": str(row["Ciudad"]),
@@ -287,11 +283,11 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
                         "servicios_oportunidad": int(row["servicios_oportunidad"])
                     })
 
-    # Generar mapa en distribuidores
+    # Generar mapa
     global _CACHE_MAPA
     _CACHE_MAPA = html_mapa
 
-    # Textos de recomendaciones
+    # Recomendaciones
     rec_dist_desc = f"Se detectaron unidades con alta carga de servicios que requieren atención prioritaria."
     rec_pendientes_desc = f"{oportunidades_activas} servicios en oportunidad requieren seguimiento por parte de los distribuidores."
     rec_prices_desc = f"Existen {oportunidades_activas} oportunidades activas de seguimiento aftermarket."
@@ -323,7 +319,6 @@ def obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion=Fals
     }
     
     tiempo_fin = time.time()
-    print(f"[LOG] Tiempo de procesamiento interno: {tiempo_fin - tiempo_inicio:.2f} segundos")
     return _CACHE_DASHBOARD
 
 def obtener_data(directorio_archivos_limpios, forzar_actualizacion=False):
@@ -336,6 +331,7 @@ def obtener_data(directorio_archivos_limpios, forzar_actualizacion=False):
         resultado = obtener_data_internal(directorio_archivos_limpios, forzar_actualizacion)
         _CACHE_DASHBOARD = resultado
         return resultado
+
 def obtener_datos_distribuidores(directorio_archivos_limpios):
     ruta_mantenimientos = f"{directorio_archivos_limpios}/new_mantenimientos.xlsx"
     try:
@@ -345,7 +341,6 @@ def obtener_datos_distribuidores(directorio_archivos_limpios):
         
     global _CACHE_DISTRIBUIDORES
     if _CACHE_DISTRIBUIDORES.get('mtime') == mtime and 'data' in _CACHE_DISTRIBUIDORES:
-        print("[DASHBOARD] Sirviendo datos de distribuidores desde caché (instantáneo)")
         return _CACHE_DISTRIBUIDORES['data']
 
     try:

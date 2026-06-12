@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from './FugaServicios.module.css';
-import { Wrench, AlertTriangle, Target, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Wrench, AlertTriangle, Target, Clock, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 import { SinDatos } from '../components/common/SinDatos';
 
@@ -29,8 +29,10 @@ interface FugaData {
 export const FugaServicios: React.FC = () => {
   const [data, setData] = useState<FugaData | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedEstatus, setSelectedEstatus] = useState<string>('Todos');
   const ROWS_PER_PAGE = 15;
 
+  // Carga los datos del análisis desde el backend de Flask al iniciar la pantalla
   useEffect(() => {
     fetch('http://127.0.0.1:5000/api/fuga-data')
       .then(res => res.json())
@@ -46,6 +48,7 @@ export const FugaServicios: React.FC = () => {
     return <SinDatos />;
   }
 
+  // Dibuja la etiqueta de estatus para colocar el filtro
   const renderEstatus = (estatus: string) => {
     switch (estatus) {
       case 'Pendiente':
@@ -61,15 +64,24 @@ export const FugaServicios: React.FC = () => {
     }
   };
 
-  const totalPages = Math.ceil(data.table.length / ROWS_PER_PAGE);
-  const currentTableData = data.table.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+  // Filtra los datos de la tabla según el estatus que se elija
+  const filteredTableData = data.table.filter(row => {
+    if (selectedEstatus === 'Todos') return true;
+    return row['Estatus'] === selectedEstatus;
+  });
 
+  // PAGINACIÓN
+  const totalPages = Math.ceil(filteredTableData.length / ROWS_PER_PAGE);
+  const currentTableData = filteredTableData.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+
+  // Cambia la página actual en la tabla
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
 
+  // Dibuja los botones de numeración de páginas en la parte inferior de la tabla
   const renderPaginationButtons = () => {
     const buttons = [];
     const maxVisiblePages = 4;
@@ -104,8 +116,16 @@ export const FugaServicios: React.FC = () => {
     return buttons;
   };
 
+  const estatusOptions = ['Todos', ...Array.from(new Set(data.table.map(row => row['Estatus'] as string).filter(Boolean)))];
+
   return (
     <div className={styles.container}>
+      <div className="page-header" style={{ marginBottom: '20px' }}>
+        <h1>Fuga de servicios</h1>
+        <p className="text-muted" style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '6px' }}>
+          Este panel analiza la pérdida de servicios preventivos no realizados en la red oficial midiendo el nivel de retrasos de servicio en unidades activas, dando información clave para coordinar la recuperación de clientes y mejorar la retención de postventa.
+        </p>
+      </div>
       <div className={styles.kpiContainer}>
         <div className={styles.kpiCard}>
           <div className={styles.kpiIcon}><Wrench size={24} /></div>
@@ -150,7 +170,38 @@ export const FugaServicios: React.FC = () => {
                 <tr>
                   <th>Unidad</th>
                   <th>Distribuidor</th>
-                  <th>Estatus</th>
+                  <th>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span>Estatus</span>
+                      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                        <ChevronDown size={14} style={{ color: '#4b5563', pointerEvents: 'none' }} />
+                        <select
+                          value={selectedEstatus}
+                          onChange={(e) => {
+                            setSelectedEstatus(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            opacity: 0,
+                            cursor: 'pointer',
+                            border: 'none',
+                            outline: 'none',
+                            margin: 0,
+                            padding: 0
+                          }}
+                        >
+                          {estatusOptions.map(opt => (
+                            <option key={opt} value={opt} style={{ color: '#374151' }}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </th>
                   <th>Horas de retraso</th>
                   <th>Frecuencia de servicio</th>
                   <th>Acción recomendada</th>
@@ -172,14 +223,14 @@ export const FugaServicios: React.FC = () => {
           </div>
           <div className={styles.pagination}>
             <ChevronLeft
-              size={24}
+              size={18}
               color={currentPage === 1 ? "#d1d5db" : "#111827"}
               style={{ cursor: currentPage === 1 ? 'default' : 'pointer' }}
               onClick={() => handlePageChange(currentPage - 1)}
             />
             {renderPaginationButtons()}
             <ChevronRight
-              size={24}
+              size={18}
               color={currentPage === totalPages ? "#d1d5db" : "#111827"}
               style={{ cursor: currentPage === totalPages ? 'default' : 'pointer' }}
               onClick={() => handlePageChange(currentPage + 1)}
@@ -189,11 +240,19 @@ export const FugaServicios: React.FC = () => {
 
         <div className={styles.chartsSection}>
           <iframe
-            src="http://127.0.0.1:5000/dash/fuga/"
+            src="http://localhost:5000/dash/fuga/side/"
             className={styles.dashIframe}
             title="Dash Graphs"
           ></iframe>
         </div>
+      </div>
+
+      <div className={styles.bottomChartSection}>
+        <iframe
+          src="http://localhost:5000/dash/fuga/bottom/"
+          className={styles.dashIframeBottom}
+          title="Distribution Graph"
+        ></iframe>
       </div>
     </div>
   );

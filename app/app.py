@@ -1,13 +1,15 @@
 import os
 import sys
 
-# Agregar el directorio actual al path de Python para permitir ejecución desde cualquier lugar
+# Agregar el directorio actual del path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
+from dashboard import obtener_data
+
 
 # Inicializar el servidor Flask principal
 servidor_flask = Flask(__name__)
@@ -16,10 +18,6 @@ app = servidor_flask
 
 DIRECTORIO_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIRECTORIO_ARCHIVOS_LIMPIOS = os.path.join(DIRECTORIO_BASE, 'data', 'ArchivosLimpios')
-
-# Importar funciones reales del dashboard
-from dashboard import obtener_data, limpiar_cache
-
 
 if not hasattr(Flask, 'before_first_request'):
     def before_first_request(self, f):
@@ -33,9 +31,7 @@ if not hasattr(Flask, 'before_first_request'):
         return f
     Flask.before_first_request = before_first_request
 
-# ==============================
-# Endpoints de la API REST
-# ==============================
+# Endpoints de API REST
 
 @app.route('/api/status', methods=['GET'])
 def obtener_estado_servidor():
@@ -147,29 +143,29 @@ def descargar_tabla_riesgo():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# =============================================================
-# 6.2.1 Integrar Dash de Riesgo Operativo
-# =============================================================
+# Dash de Riesgo Operativo
 from riesgo_operativo import init_riesgo_operativo
 init_riesgo_operativo(app)
 
-# =============================================================
-# 6.2.1 Integrar Dash de Monetización
-# =============================================================
+# Dash de Monetización
 from monetizacion import inicializar_monetizacion
 inicializar_monetizacion(app)
 
-# =============================================================
-# Integrar Dash e API de Fuga de Servicios
-# =============================================================
+# Dash e API de Fuga de Servicios
 from fuga_servicios import init_fuga_servicios
 init_fuga_servicios(app)
 
-# =============================================================
-# Integrar Importar Datos
-# =============================================================
+# Importar Datos
 from importador import init_importador
 init_importador(app)
+
+# Dash de Distribuidores
+from distribuidores_dash import init_distribuidores_dash
+init_distribuidores_dash(app)
+
+# Dash de Panel Principal (Dona)
+from dashboard_dash import init_dashboard_dash
+init_dashboard_dash(app)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -324,14 +324,6 @@
   box-shadow: none;
 }
 
-/* Vista previa de datos */
-.preview-card {
-  margin-top: var(--space-xl);
-  border-radius: var(--radius-xl);
-  padding: var(--space-xl);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-}
-
 .preview-header {
   display: flex;
   justify-content: space-between;

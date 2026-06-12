@@ -41,15 +41,6 @@ interface DatosDistribuidores {
   };
 }
 
-// Paleta de colores Reds_r (de oscuro a claro)
-const obtenerColorRojo = (index: number): string => {
-  const palette = [
-    '#67000d', '#a50f15', '#cb181d', '#ef3b2c', '#fb6a4a',
-    '#fc9272', '#fcbba1', '#fee0d2', '#fff5f0', '#ffffff'
-  ];
-  return palette[Math.min(index, palette.length - 1)];
-};
-
 export const Distributors: React.FC = () => {
   const [datos, setDatos] = useState<DatosDistribuidores | null>(null);
   const [cargando, setCargando] = useState<boolean>(true);
@@ -94,6 +85,9 @@ export const Distributors: React.FC = () => {
     <div className="distributors-page">
       <div className="page-header" style={{ marginBottom: '20px' }}>
         <h1>Distribuidores</h1>
+        <p className="text-muted" style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '6px' }}>
+          Este panel evalúa el desempeño de cada distribuidor en la atención de alertas y volumen total de unidades asignadas. Ayuda a identificar los distribuidores rezagados y zonas de alta prioridad operativa.
+        </p>
       </div>
 
       <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
@@ -146,7 +140,7 @@ export const Distributors: React.FC = () => {
       </div>
 
       <div className="main-content-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-        {/* Lado izquierdo: Tablas */}
+        {/* Lado izquierdo */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Tabla Top Distribuidores */}
           <div className="card">
@@ -181,61 +175,15 @@ export const Distributors: React.FC = () => {
           </div>
         </div>
 
-        {/* Lado derecho: Gráfica */}
+        {/* Lado derecho */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h3 className="card-title" style={{ marginBottom: '20px', fontSize: '16px', fontWeight: 'bold' }}>Top 10 Distribuidores con Unidades en Alerta Roja</h3>
-          <div style={{ display: 'flex', gap: '5px', height: '400px', padding: '20px 40px 60px 40px', position: 'relative', borderLeft: '1px solid #eee', borderBottom: '1px solid #eee', marginLeft: '70px' }}>
-            {/* Eje Y simplificado */}
-            <div style={{ position: 'absolute', left: '-45px', top: '20px', bottom: '60px', width: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '10px', color: '#666' }}>
-              <span>1200</span>
-              <span>1000</span>
-              <span>800</span>
-              <span>600</span>
-              <span>400</span>
-              <span>200</span>
-              <span>0</span>
-            </div>
-
-            {/* Títulos de Ejes */}
-            <div style={{ position: 'absolute', left: '-60px', top: '50%', transform: 'translate(-50%, -50%) rotate(-90deg)', fontSize: '12px', color: '#666', whiteSpace: 'nowrap' }}>
-              Número de Unidades en Alerta Roja
-            </div>
-            <div style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', fontSize: '12px', color: '#666', fontWeight: 'bold' }}>
-              DISTRIBUIDOR
-            </div>
-
-            {/* Barras */}
-            {datos.top_distribuidores.map((d, i) => {
-              const maxVal = Math.max(...datos.top_distribuidores.map(x => x.unidades_alerta_roja)) || 1;
-              // Ajustamos maxVal para que las barras se vean bien (ej. 1200 si el max es 1100)
-              const chartMax = Math.ceil(maxVal / 200) * 200;
-              const alturaPct = (d.unidades_alerta_roja / chartMax) * 100;
-
-              return (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
-                  <div
-                    style={{
-                      width: '80%',
-                      height: `${alturaPct}%`,
-                      backgroundColor: obtenerColorRojo(i),
-                      border: '1px solid rgba(0,0,0,0.1)'
-                    }}
-                    title={`${d.distribuidor}: ${d.unidades_alerta_roja}`}
-                  ></div>
-                  <span style={{
-                    fontSize: '10px',
-                    color: '#333',
-                    marginTop: '5px',
-                    transform: 'rotate(45deg)',
-                    transformOrigin: 'top left',
-                    whiteSpace: 'nowrap',
-                    width: '10px'
-                  }}>
-                    {d.distribuidor.substring(0, 15)}
-                  </span>
-                </div>
-              );
-            })}
+          <div style={{ height: '400px', width: '100%', borderRadius: '8px', overflow: 'hidden' }}>
+            <iframe
+              src="http://localhost:5000/dash/distribuidores/bar/"
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              title="Top Distribuidores"
+            />
           </div>
         </div>
       </div>

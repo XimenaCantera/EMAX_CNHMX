@@ -165,3 +165,18 @@ button {
   background-color: var(--color-success);
   color: var(--color-success-text);
 }
+
+/* Estilo uniforme para todas las tablas de los tableros */
+table, .data-table, .dataTable, .clean-table {
+  font-family: 'Outfit', sans-serif !important;
+}
+
+table th, .data-table th, .dataTable th, .clean-table th {
+  font-size: 0.8rem !important;
+  font-family: 'Outfit', sans-serif !important;
+}
+
+table td, .data-table td, .dataTable td, .clean-table td {
+  font-size: 0.75rem !important;
+  font-family: 'Outfit', sans-serif !important;
+}

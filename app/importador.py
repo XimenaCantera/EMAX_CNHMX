@@ -154,7 +154,7 @@ def init_importador(app):
                         df_existente = pd.read_excel(ruta_destino)
                         df_combinado = pd.concat([df_existente, df], ignore_index=True)
                         
-                        # Deduplicación basada en columnas llave del archivo
+                        # Deduplicar según las columnas clave del archivo
                         if nombre_destino == 'new_mantenimientos.xlsx':
                             llaves = [col for col in df_combinado.columns if str(col).strip().lower() in ['alias', 'servicio', 'fecha', 'o.t.', 'ot', 'no serie', 'no_serie', 'no. serie']]
                             df_combinado = df_combinado.drop_duplicates(subset=llaves, keep='last') if llaves else df_combinado.drop_duplicates(keep='last')
