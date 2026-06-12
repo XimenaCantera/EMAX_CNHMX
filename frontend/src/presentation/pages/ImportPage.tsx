@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, FileSpreadsheet, CheckCircle2, XCircle, Loader2, ShieldCheck, X } from 'lucide-react';
 import './ImportPage.css';
+import { API_BASE_URL } from '../../config';
 
 interface UploadMetadata {
   filename: string;
@@ -117,7 +118,7 @@ export const ImportPage: React.FC = () => {
     });
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/upload', {
+      const response = await fetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -165,7 +166,7 @@ export const ImportPage: React.FC = () => {
       }
     } catch (err) {
       clearInterval(progressInterval);
-      setErrorMsg("No se pudo conectar con el servidor backend en http://127.0.0.1:5000. Asegúrate de iniciar el backend.");
+      setErrorMsg("No se pudo conectar con el servidor backend. Asegúrate de que el servidor esté activo.");
       console.error(err);
     } finally {
       setUploading(false);

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styles from './FugaServicios.module.css';
 import { Wrench, AlertTriangle, Target, Clock, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
-
 import { SinDatos } from '../components/common/SinDatos';
+import { API_BASE_URL } from '../../config';
 
 interface DistributorAnalysis {
   distribuidor: string;
@@ -32,9 +32,8 @@ export const FugaServicios: React.FC = () => {
   const [selectedEstatus, setSelectedEstatus] = useState<string>('Todos');
   const ROWS_PER_PAGE = 15;
 
-  // Carga los datos del análisis desde el backend de Flask al iniciar la pantalla
   useEffect(() => {
-    fetch('http://127.0.0.1:5000/api/fuga-data')
+    fetch(`${API_BASE_URL}/api/fuga-data`)
       .then(res => res.json())
       .then(d => setData(d))
       .catch(err => console.error(err));

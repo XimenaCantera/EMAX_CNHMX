@@ -6,7 +6,7 @@ export const RiesgoOperativo: React.FC = () => {
     <ContenedorTablero
       titulo="Riesgo Operativo"
       descripcion="Este panel ayuda a identificar a los distribuidores con equipos con mayores horas de retraso acumuladas, permitiendo programar visitas técnicas y campañas preventivas de manera oportuna."
-      iframeSrc="http://127.0.0.1:5000/dash/riesgo/"
+      iframeSrc="/dash/riesgo/"
       iframeTitle="Riesgo Operativo Dash"
       textoCargando="Cargando panel de riesgo operativo..."
       colorFondoCargador="#f8fafc"

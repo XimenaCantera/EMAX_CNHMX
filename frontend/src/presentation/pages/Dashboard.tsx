@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import './Dashboard.css';
 import { SinDatos } from '../components/common/SinDatos';
+import { API_BASE_URL } from '../../config';
 
 //Usamos lucide-react para poner íconos en las tarjetas del dashboard.
 interface TopOportunidad {
@@ -206,7 +207,7 @@ export const Dashboard: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/dashboard');
+      const response = await fetch('/api/dashboard');
       const json = await response.json();
 
       if (response.ok && json.success) {
@@ -315,7 +316,7 @@ export const Dashboard: React.FC = () => {
 
           <div style={{ height: '280px', width: '100%', borderRadius: '8px', overflow: 'hidden', marginTop: '16px' }}>
             <iframe
-              src="http://localhost:5000/dash/dashboard/donut/"
+              src="/dash/dashboard/donut/"
               style={{ width: '100%', height: '100%', border: 'none' }}
               title="Urgencia de Servicios"
             />
@@ -323,7 +324,7 @@ export const Dashboard: React.FC = () => {
 
           <div className="donut-download-btn-wrapper">
             <a
-              href="http://127.0.0.1:5000/api/download/tabla-riesgo"
+              href="/api/download/tabla-riesgo"
               download="tabla_riesgo_unidades.xlsx"
               className="btn btn-outline donut-download-btn"
             >

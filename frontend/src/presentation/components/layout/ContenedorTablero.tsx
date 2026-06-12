@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Cargador } from '../common/cargador';
 import { SinDatos } from '../common/SinDatos';
+import { API_BASE_URL } from '../../config';
 
 interface PropiedadesContenedorTablero {
   titulo: string;
@@ -29,7 +30,7 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
   useEffect(() => {
     const checkData = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:5000/api/dashboard');
+        const res = await fetch(`${API_BASE_URL}/api/dashboard`);
         const json = await res.json();
         if (json.no_data) {
           setDataExists(false);
@@ -132,7 +133,7 @@ export const ContenedorTablero: React.FC<PropiedadesContenedorTablero> = ({
           />
         )}
         <iframe
-          src={iframeSrc}
+          src={iframeSrc.startsWith('http') ? iframeSrc : `${API_BASE_URL}${iframeSrc}`}
           title={iframeTitle}
           width="100%"
           height="100%"

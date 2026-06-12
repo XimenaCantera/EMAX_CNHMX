@@ -1,6 +1,3 @@
-# Lista de todas las librerías utilizadas
-# Para instalar todas las librerías se puede usarel comando: pip install -r requirements.txt
-
 Flask==3.0.2
 Flask-Cors==4.0.0
 pandas==2.2.0

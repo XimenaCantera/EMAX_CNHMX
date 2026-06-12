@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, FileText, Users, Tractor } from 'lucide-react';
 import './Distributors.css';
 import { SinDatos } from '../components/common/SinDatos';
+import { API_BASE_URL } from '../../config';
 
 interface TopDistribuidor {
   distribuidor: string;
@@ -49,7 +50,7 @@ export const Distributors: React.FC = () => {
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const respuesta = await fetch('http://localhost:5000/api/distribuidores');
+        const respuesta = await fetch(`${API_BASE_URL}/api/distribuidores`);
         const json = await respuesta.json();
 
         if (json.success && json.data) {
@@ -180,7 +181,7 @@ export const Distributors: React.FC = () => {
           <h3 className="card-title" style={{ marginBottom: '20px', fontSize: '16px', fontWeight: 'bold' }}>Top 10 Distribuidores con Unidades en Alerta Roja</h3>
           <div style={{ height: '400px', width: '100%', borderRadius: '8px', overflow: 'hidden' }}>
             <iframe
-              src="http://localhost:5000/dash/distribuidores/bar/"
+              src={`${API_BASE_URL}/dash/distribuidores/bar/`}
               style={{ width: '100%', height: '100%', border: 'none' }}
               title="Top Distribuidores"
             />
@@ -192,7 +193,7 @@ export const Distributors: React.FC = () => {
         <h3 className="card-title">CONCENTRACIÓN GEOGRÁFICA DE UNIDADES CRÍTICAS Y ALTAS</h3>
         <div style={{ height: '700px', width: '100%', borderRadius: '8px', overflow: 'hidden', marginTop: '16px' }}>
           <iframe
-            src="http://127.0.0.1:5000/api/mapa"
+            src={`${API_BASE_URL}/api/mapa`}
             style={{ width: '100%', height: '100%', border: 'none' }}
             title="Mapa de Riesgo"
           />
