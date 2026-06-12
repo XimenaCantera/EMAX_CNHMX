@@ -207,7 +207,7 @@ export const Dashboard: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/dashboard');
+      const response = await fetch(`${API_BASE_URL}/api/dashboard`);
       const json = await response.json();
 
       if (response.ok && json.success) {
