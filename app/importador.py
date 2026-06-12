@@ -188,8 +188,13 @@ def init_importador(app):
                 else:
                     df_combinado = df
                     
-                df_combinado.to_excel(ruta_destino, index=False)
                 df_combinado.to_csv(ruta_destino.replace('.xlsx', '.csv'), index=False)
+                # Eliminar la versión .xlsx para evitar inconsistencias de datos y liberar espacio
+                if os.path.exists(ruta_destino):
+                    try:
+                        os.remove(ruta_destino)
+                    except Exception:
+                        pass
                 
                 cantidad_filas = len(df)
                 lista_columnas = [str(c) for c in df.columns]
