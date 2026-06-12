@@ -5,25 +5,9 @@
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": { "distDir": "dist" }
-    },
-    {
-      "src": "app/app.py",
-      "use": "@vercel/python"
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "app/app.py"
-    },
-    {
-      "src": "/dash/(.*)",
-      "dest": "app/app.py"
-    },
-    {
-      "src": "/_dash-(.*)",
-      "dest": "app/app.py"
-    },
     {
       "src": "/assets/(.*)",
       "dest": "frontend/assets/$1"
