@@ -7,7 +7,7 @@ from dash.dependencies import Input, Output
 import plotly.express as px
 import plotly.graph_objects as go
 import xgboost as xgb
-from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold
 
 # Definición de rutas del proyecto
 DIRECTORIO_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,7 +16,7 @@ DIRECTORIO_ARCHIVOS_LIMPIOS = os.path.join(DIRECTORIO_BASE, 'data', 'ArchivosLim
 # Caché global para almacenar los dataframes procesados
 _CACHE_MONETIZACION = {}
 
-# Cabeceras de tabla a nivel de módulo para ser accesibles por callbacks y layout
+# Tabla  de Prioridad comercial
 cabecera_tabla_prediccion = [
     html.Tr([
         html.Th("Unidad", style={'text-align': 'left', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'}),
@@ -44,10 +44,8 @@ def obtener_estilo_badge_probabilidad(prob):
     else:
         return {'background-color': '#dcfce7', 'color': '#15803d', 'border': '1px solid #bbf7d0', 'padding': '2px 8px', 'border-radius': '12px', 'font-weight': '600', 'font-size': '0.75rem'}
 
-def inicializar_monetizacion(servidor_flask):
-    """
-    Iniciamos el dashboard analítico de Dash con el servidor web Flask principal
-    """
+#Iniciamos el dashboard analítico de Dash con el servidor web Flask
+def inicializar_monetizacion(servidor_flask):    
     aplicacion_dash = dash.Dash(
         __name__,
         server=servidor_flask,
@@ -58,10 +56,8 @@ def inicializar_monetizacion(servidor_flask):
     from plantillas_dash import PLANTILLA_HTML_CARGANDO
     aplicacion_dash.index_string = PLANTILLA_HTML_CARGANDO
 
-    def servir_diseno_dashboard():
-        """
-        Diseño de interfaces y construcción del diseño dinámico del tablero.
-        """
+    # Diseño dinámico del tablero.
+    def servir_diseno_dashboard():        
         ruta_mantenimientos = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_mantenimientos.xlsx')
         ruta_unidades = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_unidades.xlsx')
         ruta_poblacion = os.path.join(DIRECTORIO_ARCHIVOS_LIMPIOS, 'new_population.xlsx')
@@ -87,12 +83,10 @@ def inicializar_monetizacion(servidor_flask):
             mtime_sum = 0
 
         if _CACHE_MONETIZACION.get('mtime_sum') == mtime_sum and 'layout' in _CACHE_MONETIZACION:
-            print("[MONETIZACION] Sirviendo layout desde caché (instantáneo)")
             return _CACHE_MONETIZACION['layout']
 
         try:
-            print("[MONETIZACION] Procesando datos y entrenando modelos XGBoost...")
-            # Carga de datos desde los archivos
+            # Cargar datos desde los archivos
             df_mantenimientos = pd.read_excel(ruta_mantenimientos)
             df_reporte = pd.read_excel(ruta_unidades)
             df_poblacion = pd.read_excel(ruta_poblacion)
@@ -162,7 +156,7 @@ def inicializar_monetizacion(servidor_flask):
 
             df_monetizacion_final['puntaje_oportunidad'] = df_monetizacion_final['riesgo_retraso_norm'] * df_monetizacion_final['valor_aftermarket_norm']
 
-            # Mejores unidades según puntaje (Tab 1)
+            # Mejores unidades según puntaje
             mejores_15_unidades = df_monetizacion_final.sort_values(by='puntaje_oportunidad', ascending=False).head(15)
             tabla_top_10 = df_monetizacion_final.sort_values(by='puntaje_oportunidad', ascending=False).head(10)
 
@@ -170,7 +164,7 @@ def inicializar_monetizacion(servidor_flask):
             # ENTRENAMIENTO DE MODELOS XGBOOST
             # ============================================
             
-            # --- Predicción de Retraso de Servicio (Pendiente/CerradaFuera) ---
+            # Predicción de Retraso de Servicio
             df_mantenimiento_xgb = df_mantenimientos.copy()
             df_mantenimiento_xgb['mantenimiento_pendiente_fuera'] = df_mantenimiento_xgb['ESTATUS'].apply(
                 lambda s: 1 if s in ['Pendiente', 'CerradaFuera'] else (0 if s == 'Cerrada' else np.nan)
@@ -189,7 +183,7 @@ def inicializar_monetizacion(servidor_flask):
 
             # One-Hot Encoding
             df_model_maint_encoded = pd.get_dummies(df_model_maint, columns=['SEVERITY_LEVEL'], drop_first=True)
-            # Asegurar consistencia de columnas de severidad
+            # Revisar consistencia de columnas de severidad
             for level in ['Medium', 'High', 'Low', 'Critical']:
                 col = f'SEVERITY_LEVEL_{level}'
                 if col not in df_model_maint_encoded.columns and col != 'SEVERITY_LEVEL_Medium': # Since drop_first removes one
@@ -198,7 +192,6 @@ def inicializar_monetizacion(servidor_flask):
             X_maint = df_model_maint_encoded.drop(columns=['mantenimiento_pendiente_fuera'])
             y_maint = df_model_maint_encoded['mantenimiento_pendiente_fuera']
 
-            # regularized model for Delay
             model_xgb_maint = xgb.XGBClassifier(
                 objective='binary:logistic',
                 eval_metric='logloss',
@@ -212,7 +205,7 @@ def inicializar_monetizacion(servidor_flask):
             )
             model_xgb_maint.fit(X_maint, y_maint)
 
-            # --- MODELO 2: Alta Oportunidad de Monetización ---
+            # MODELO 2: Alta Oportunidad de Monetización
             percentil_75 = df_monetizacion_final['puntaje_oportunidad'].quantile(0.75)
             df_monetizacion_final['oportunidad_alta'] = (df_monetizacion_final['puntaje_oportunidad'] >= percentil_75).astype(int)
 
@@ -232,7 +225,7 @@ def inicializar_monetizacion(servidor_flask):
             X_monet = df_model_monet_encoded.copy()
             y_monet = df_monetizacion_final['oportunidad_alta']
 
-            # Use StratifiedKFold to get out-of-fold predicted probabilities for training set to avoid overfitting
+            # Usar StratifiedKFold para obtener las probabilidades para el entrenamiento y evitar un sobreajuste
             cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
             oof_probs_monet = np.zeros(len(X_monet))
 
@@ -256,7 +249,7 @@ def inicializar_monetizacion(servidor_flask):
 
             df_monetizacion_final['y_pred_proba_monetization'] = oof_probs_monet
 
-            # Predicción para mantenimientos activos
+            # Predecir mantenimientos activos
             df_mantenimientos_activos = df_mantenimientos[df_mantenimientos['ESTATUS'] != 'Cerrada'].copy()
             if not df_mantenimientos_activos.empty:
                 df_act_features = df_mantenimientos_activos.copy()
@@ -280,17 +273,15 @@ def inicializar_monetizacion(servidor_flask):
                 df_mantenimientos_activos['prob_retraso'] = []
 
 
-            # Guardar resultados en caché global
+            # Guardar en caché
             _CACHE_MONETIZACION = {
                 'df_monetizacion_final': df_monetizacion_final,
                 'df_mantenimientos_activos': df_mantenimientos_activos
             }
 
-            # ===================================================
-            # CONSTRUCCIÓN DE GRÁFICOS (TAB 1)
-            # ===================================================
+            # Gráficas
             
-            # Chart 1: Oportunidad por Unidad (Barras Horizontales)
+            # Gráfica 1: Oportunidad por unidad
             figura_barras_oportunidad = px.bar(
                 mejores_15_unidades,
                 x='puntaje_oportunidad',
@@ -321,7 +312,7 @@ def inicializar_monetizacion(servidor_flask):
                 height=380
             )
 
-            # Chart 2: Curva de Pareto
+            # Gráfica 2: Curva de Pareto
             df_curva_pareto = df_monetizacion_final.sort_values(by='puntaje_oportunidad', ascending=False).reset_index(drop=True)
             puntaje_total = df_curva_pareto['puntaje_oportunidad'].sum()
             df_curva_pareto['cumulative_score_pct'] = (df_curva_pareto['puntaje_oportunidad'].cumsum() / (puntaje_total if puntaje_total > 0 else 1.0)) * 100
@@ -375,7 +366,7 @@ def inicializar_monetizacion(servidor_flask):
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=9))
             )
 
-            # Chart 3: Barras Agrupadas
+            # Gráfica 3: Barras agrupadas
             df_reestructurado_variables = mejores_15_unidades.copy()
             df_reestructurado_variables.rename(columns={
                 'riesgo_retraso_norm': 'Riesgo de Retraso (RIT)',
@@ -411,9 +402,7 @@ def inicializar_monetizacion(servidor_flask):
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=9))
             )
 
-            # =========================================================================
-            # COMPONENTES DE TABLA Y ESTILOS
-            # =========================================================================
+            # Estilos de la tabla
             
             def obtener_estilo_etiqueta_puntaje(puntaje):
                 if puntaje >= 0.9:
@@ -425,7 +414,7 @@ def inicializar_monetizacion(servidor_flask):
                 else:
                     return {'background-color': '#ffffff', 'border': '1.5px solid #fee2e2', 'color': '#ef4444', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'width': '52px', 'height': '22px', 'border-radius': '4px', 'font-weight': '700', 'font-size': '0.75rem'}
 
-            # --- Tabla 1: Top Oportunidades Analíticas ---
+            # Tabla 1: Oportunidades
             cabecera_tabla_analitica = [
                 html.Tr([
                     html.Th("Unidad", style={'text-align': 'left', 'padding': '12px 10px', 'font-weight': '600', 'color': '#475569', 'border-bottom': '2px solid #e2e8f0', 'background-color': '#f8fafc'}),
@@ -445,13 +434,11 @@ def inicializar_monetizacion(servidor_flask):
                     html.Td(texto_retraso, style={'padding': '10px', 'border-bottom': '1px solid #f1f5f9', 'color': '#475569'})
                 ]))
 
-            # ================================================
-            # RETORNO DEL DISEÑO CON PESTAÑAS (TABS)
-            # ================================================
+            # Diseño con pestañas
             
             diseno_final = html.Div([
                 dcc.Tabs(id="tabs-monetizacion", value='tab-analitico', children=[
-                    # Pestaña 1: Análisis de Oportunidades
+                    # Pestaña 1: Oportunidades
                     dcc.Tab(label='Análisis de Oportunidades', value='tab-analitico', style={
                         'padding': '12px 24px', 'font-family': 'Outfit, sans-serif', 'font-weight': '600', 'border': 'none',
                         'background-color': '#f1f5f9', 'color': '#475569', 'border-radius': '6px 6px 0 0', 'margin-right': '4px'
@@ -460,9 +447,9 @@ def inicializar_monetizacion(servidor_flask):
                         'background-color': '#ffffff', 'color': '#1e3a8a', 'border-bottom': '4px solid #1d4ed8', 'border-radius': '6px 6px 0 0', 'margin-right': '4px'
                     }, children=[
                         html.Div([
-                            # Fila 1: Tabla y Gráfico de barras horizontales
+                            # Fila 1
                             html.Div([
-                                # Izquierda: Tarjeta de tabla
+                                # Tabla
                                 html.Div([
                                     html.H3("Tabla de Prioridad Comercial", 
                                         style={'font-size': '1.125rem', 
@@ -483,7 +470,7 @@ def inicializar_monetizacion(servidor_flask):
                                     'flex': '1', 'min-width': '380px', 'overflow-x': 'auto'
                                 }),
                                 
-                                # Derecha: Tarjeta de gráfico de barras
+                                # Gráfica
                                 html.Div([
                                     html.H3("Unidades con Mayor Oportunidad de Monetización", 
                                         style={
@@ -507,9 +494,9 @@ def inicializar_monetizacion(servidor_flask):
                                 'margin-bottom': '24px', 
                                 'flex-wrap': 'wrap'}),
                             
-                            # Fila 2: Curva de Pareto y Gráfico de barras agrupadas
+                            # Fila 2
                             html.Div([
-                                # Izquierda: Curva de Pareto
+                                # Pareto
                                 html.Div([
                                     html.H3("Curva de Pareto (% Unidades vs % Potencial Económico)", style={
                                         'font-size': '1.125rem', 
@@ -525,7 +512,7 @@ def inicializar_monetizacion(servidor_flask):
                                     'flex': '1', 'min-width': '380px'
                                 }),
                                 
-                                # Derecha: Tarjeta de gráfico de barras agrupadas
+                                # Barras agrupadas
                                 html.Div([
                                     html.H3("Desglose del Puntaje de Oportunidad", style={'font-size': '1.125rem', 'font-weight': '700', 'color': '#10123C', 'margin-top': '0', 'margin-bottom': '16px', 'font-family': 'Outfit, sans-serif'}),
                                     dcc.Graph(figure=figura_barras_agrupadas, config={'displayModeBar': False})
@@ -538,7 +525,7 @@ def inicializar_monetizacion(servidor_flask):
                         ])
                     ]),
 
-                    # Pestaña 2: Predicción Comercial (XGBoost)
+                    # Pestaña 2: Predicción
                     dcc.Tab(label='Predicción Comercial', value='tab-predictivo', style={
                         'padding': '12px 24px', 'font-family': 'Outfit, sans-serif', 'font-weight': '600', 'border': 'none',
                         'background-color': '#f1f5f9', 'color': '#475569', 'border-radius': '6px 6px 0 0', 'margin-right': '4px'
@@ -549,9 +536,9 @@ def inicializar_monetizacion(servidor_flask):
                         html.Div([
                             
 
-                            # Fila 1: Tabla de Predicción
+                            # Fila 1
                             html.Div([
-                                # Izquierda: Tabla de Predicción Comercial
+                                # Tabla
                                 html.Div([
                                     html.H3("Tabla de Predicción Comercial",
                                             style={
@@ -580,7 +567,7 @@ def inicializar_monetizacion(servidor_flask):
                                         )
                                     ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '15px'}),
                                     
-                                    # Contenedor dinámico de la tabla
+                                    # Tabla dinámica
                                     html.Div(id='tabla-prediccion-container')
                                 ], style={
                                     'background-color': '#ffffff', 'border-radius': '12px', 'padding': '24px 16px',
@@ -590,7 +577,7 @@ def inicializar_monetizacion(servidor_flask):
                                 
                             ], style={'display': 'flex', 'gap': '24px', 'margin-bottom': '24px', 'flex-wrap': 'wrap'}),
 
-                            # Fila 2: Predicción de Riesgo de Retraso de Servicios
+                            # Fila 2
                             html.Div([
                                 html.Div([
                                     html.H3("Mantenimientos Pendientes con Mayor Riesgo de Quedar Inconclusos / Retrasados", 
@@ -626,7 +613,7 @@ def inicializar_monetizacion(servidor_flask):
                                         )
                                     ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '15px'}),
                                     
-                                    # Contenedor dinámico de la tabla
+                                    # Tabla dinámica
                                     html.Div(id='tabla-servicios-container')
                                 ], style={
                                     'background-color': '#ffffff', 'border-radius': '12px', 'padding': '24px 16px',
@@ -657,7 +644,7 @@ def inicializar_monetizacion(servidor_flask):
                 })
             ], style={'background-color': '#f8fafc', 'min-height': '100vh', 'padding': '20px'})
 
-    # Registro de callbacks para actualizar las tablas basadas en filtros
+    # Actualizar tablas con filtros
     @aplicacion_dash.callback(
         Output('tabla-prediccion-container', 'children'),
         Input('filtro-prob-monetizacion', 'value')
@@ -669,7 +656,7 @@ def inicializar_monetizacion(servidor_flask):
             
         df = _CACHE_MONETIZACION['df_monetizacion_final']
         
-        # Filtrar por la probabilidad mínima seleccionada y ordenar por valor de aftermarket
+        # Filtrar y ordenar
         df_filtrado = df[df['y_pred_proba_monetization'] >= float(prob_minima)]
         df_filtrado = df_filtrado.sort_values(by='valor_acumulado_aftermarket', ascending=False).head(10)
         
@@ -712,7 +699,7 @@ def inicializar_monetizacion(servidor_flask):
                 ])
             ], style={'width': '100%', 'border-collapse': 'collapse', 'font-family': 'Inter, sans-serif', 'font-size': '0.75rem'})
             
-        # Filtrar por probabilidad mínima y ordenar por retraso vs intervalo de servicio
+        # Filtrar y ordenar
         df_filtrado = df[df['prob_retraso'] >= float(prob_minima)]
         df_filtrado = df_filtrado.sort_values(by='delay_vs_service_interval', ascending=False).head(10)
         

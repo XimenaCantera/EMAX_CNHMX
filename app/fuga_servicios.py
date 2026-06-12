@@ -28,7 +28,8 @@ def cargar_datos_mantenimiento():
         return pd.DataFrame()
 
 def init_fuga_servicios(server):
-    # Ruta de la API
+    
+    # Ruta
     @server.route('/api/fuga-data', methods=['GET'])
     def get_fuga_data():
         df_mantenimientos = cargar_datos_mantenimiento()
@@ -126,7 +127,7 @@ def init_fuga_servicios(server):
         'boxShadow': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.05)'
     }
 
-    # --- APP DASH LATERAL ---
+    # APP DASH
     app_dash_side = dash.Dash(
         __name__,
         server=server,
@@ -175,7 +176,7 @@ def init_fuga_servicios(server):
 
     app_dash_side.layout = serve_layout_side
 
-    # --- APP DASH INFERIOR ---
+    # APP DASH
     app_dash_bottom = dash.Dash(
         __name__,
         server=server,

@@ -32,6 +32,7 @@ export const FugaServicios: React.FC = () => {
   const [selectedEstatus, setSelectedEstatus] = useState<string>('Todos');
   const ROWS_PER_PAGE = 15;
 
+  // Carga los datos del análisis desde el backend de Flask al iniciar la pantalla
   useEffect(() => {
     fetch('http://127.0.0.1:5000/api/fuga-data')
       .then(res => res.json())
@@ -47,6 +48,7 @@ export const FugaServicios: React.FC = () => {
     return <SinDatos />;
   }
 
+  // Dibuja la etiqueta de estatus para colocar el filtro
   const renderEstatus = (estatus: string) => {
     switch (estatus) {
       case 'Pendiente':
@@ -62,20 +64,24 @@ export const FugaServicios: React.FC = () => {
     }
   };
 
+  // Filtra los datos de la tabla según el estatus que se elija
   const filteredTableData = data.table.filter(row => {
     if (selectedEstatus === 'Todos') return true;
     return row['Estatus'] === selectedEstatus;
   });
 
+  // PAGINACIÓN
   const totalPages = Math.ceil(filteredTableData.length / ROWS_PER_PAGE);
   const currentTableData = filteredTableData.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
 
+  // Cambia la página actual en la tabla
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
 
+  // Dibuja los botones de numeración de páginas en la parte inferior de la tabla
   const renderPaginationButtons = () => {
     const buttons = [];
     const maxVisiblePages = 4;
@@ -217,14 +223,14 @@ export const FugaServicios: React.FC = () => {
           </div>
           <div className={styles.pagination}>
             <ChevronLeft
-              size={24}
+              size={18}
               color={currentPage === 1 ? "#d1d5db" : "#111827"}
               style={{ cursor: currentPage === 1 ? 'default' : 'pointer' }}
               onClick={() => handlePageChange(currentPage - 1)}
             />
             {renderPaginationButtons()}
             <ChevronRight
-              size={24}
+              size={18}
               color={currentPage === totalPages ? "#d1d5db" : "#111827"}
               style={{ cursor: currentPage === totalPages ? 'default' : 'pointer' }}
               onClick={() => handlePageChange(currentPage + 1)}

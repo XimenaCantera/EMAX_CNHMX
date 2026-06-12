@@ -42,11 +42,20 @@ EMAX_CNHMX/
 
 ## Justificación de las Tecnologías Usadas
 
-* **React.js, TypeScript y Vite**: Escogimos estas tecnologías ya que nos permiten desarrollar una interfaz de usuario modular, rápida y ofrece una experiencia interactiva óptima.
-* **Flask (Python)**: Muestra un micro-framework ágil para usar los endpoints REST y conectar la interfaz con la lógica facilmente.
-* **Dash y Plotly**: Decidimos utilizarlo para generar visualizaciones dinámicas dentro del backend.
-* **Pandas y NumPy**: Son herramientas básicas en ciencia de datos para poder cargar, limpiezar, fusionar datos y procesar archivos Excel de forma eficiente.
-* **Modelos Predictivos (XGBoost, Regresión Lineal Múltiple, ANOVA)**: Decidimos implementar estos modelos por su solidez para modelar relaciones de fallos, estimar comportamientos de fuga y proyectar tendencias de amortización/monetización, consideramos que nos ayuda demostrar patrones o como ayuda para que CNH pueda tomar la mejor decisión.
+Aprendimos a usar **Dash y Plotly** para hacer gráficos interactivos y análisis de datos en Python. Pero para este proyecto quisimos diseñar una plataforma completa, secciones separadas (Dashboard, Fuga de Servicios, Importador de archivos) y un diseño personalizado que fuera fácil de navegar.
+
+Por eso decidimos combinar las siguientes herramientas:
+
+* **Dash y Plotly**: Los usamos para programar todos los gráficos interactivos y cálculos del negocio. De esta forma, aprovechamos al máximo lo que aprendimos para la visualización de datos.
+* **Flask**: Es un micro-framework en Python muy sencillo que nos sirve como "puente". Nos permite correr los modelos y levantar los tableros de Dash en segundo plano.
+* **React, HTML y CSS**: Se decidió no hacer toda la página en Python  porque consideramos que puede ser más complicado para personalizar el diseño y acomodar los elementos de los tableros, usamos React y HTML básico para armar la plantilla del dashboard. Dentro de esta plantilla agregamos los gráficos interactivos de Dash.
+
+## Tecnologías y Herramientas Usadas
+* **Visualizaciones**: Dash y Plotly en Python.
+* **Procesamiento de datos**: Pandas y NumPy (para cargar, limpiar y fusionar los datos de Excel).
+* **Modelado y Análisis**: XGBoost, Regresión Lineal y pruebas estadísticas.
+* **Servidor (Backend)**: Flask en Python.
+* **Interfaz de usuario (Frontend)**: React, HTML y CSS para estructurar la navegación.
 
 ---
 

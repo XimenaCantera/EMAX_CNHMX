@@ -17,7 +17,7 @@ interface ImportResult {
   message?: string;
   metadata?: UploadMetadata;
 }
-
+// Variables de estado para controlar la interfaz y los datos
 export const ImportPage: React.FC = () => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -39,6 +39,7 @@ export const ImportPage: React.FC = () => {
     }
   };
 
+  // Valida que el archivo seleccionado realmente sea un Excel (.xlsx)
   const validateFiles = (files: File[] | FileList) => {
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -67,6 +68,7 @@ export const ImportPage: React.FC = () => {
     }
   };
 
+  // Cuando el usuario suelta el archivo arrastrado
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -77,24 +79,27 @@ export const ImportPage: React.FC = () => {
     }
   };
 
+  // Se ejecuta al dar clic en buscar archivo
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       validateFiles(Array.from(e.target.files));
     }
   };
 
+  // Abre el explorador de archivos del sistema al hacer clic
   const onButtonClick = () => {
     fileInputRef.current?.click();
   };
 
+  // Envía los archivos seleccionados al backend de Flask
   const handleUpload = async () => {
     if (selectedFiles.length === 0) return;
-
     setUploading(true);
     setUploadProgress(10);
     setErrorMsg(null);
     setSuccessMsg(null);
 
+    // Mostrar una barra de carga dinámica
     const progressInterval = setInterval(() => {
       setUploadProgress(prev => {
         if (prev >= 85) {
@@ -105,6 +110,7 @@ export const ImportPage: React.FC = () => {
       });
     }, 120);
 
+    // Creamos la petición HTTP para enviar los archivos
     const formData = new FormData();
     selectedFiles.forEach(file => {
       formData.append('files', file);
@@ -170,6 +176,7 @@ export const ImportPage: React.FC = () => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
+  // Convierte los bytes del archivo a un formato legible (KB, MB)
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;

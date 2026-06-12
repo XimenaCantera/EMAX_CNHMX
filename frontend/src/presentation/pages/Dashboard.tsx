@@ -119,21 +119,7 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  // Cálculos para el gráfico de dona
-  const datosDona = data.donut_chart_data;
 
-  const critico = datosDona.critico_pct;
-  const alto = critico + datosDona.alto_pct;
-  const medio = alto + datosDona.medio_pct;
-
-  const estiloDona = {
-    background: `conic-gradient(
-    #A32428 0% ${critico}%,
-    #B45309 ${critico}% ${alto}%,
-    #20235C ${alto}% ${medio}%,
-    #E5E7EB ${medio}% 100%
-  )`
-  };
 
   return (
     <div className="dashboard-page">
@@ -183,43 +169,12 @@ export const Dashboard: React.FC = () => {
         <div className="card chart-card">
           <h3 className="card-title">URGENCIA DE SERVICIOS</h3>
 
-          <div className="donut-chart-container-flex">
-            <div className="donut-chart" style={estiloDona}>
-              <div className="donut-inner">
-                <span className="donut-value">{datosDona.critico_pct}%</span>
-                <span className="donut-label">Crítico</span>
-              </div>
-            </div>
-
-            <div className="donut-legend">
-              <div className="legend-item">
-                <span className="legend-color" style={{ backgroundColor: '#A32428' }}></span>
-                <span className="legend-label">
-                  Crítico: {datosDona.critico_pct}% {datosDona.critico_cnt !== undefined ? `(${datosDona.critico_cnt.toLocaleString('es-MX')})` : ''}
-                </span>
-              </div>
-
-              <div className="legend-item">
-                <span className="legend-color" style={{ backgroundColor: '#B45309' }}></span>
-                <span className="legend-label">
-                  Alto: {datosDona.alto_pct}% {datosDona.alto_cnt !== undefined ? `(${datosDona.alto_cnt.toLocaleString('es-MX')})` : ''}
-                </span>
-              </div>
-
-              <div className="legend-item">
-                <span className="legend-color" style={{ backgroundColor: '#20235C' }}></span>
-                <span className="legend-label">
-                  Medio: {datosDona.medio_pct}% {datosDona.medio_cnt !== undefined ? `(${datosDona.medio_cnt.toLocaleString('es-MX')})` : ''}
-                </span>
-              </div>
-
-              <div className="legend-item">
-                <span className="legend-color" style={{ backgroundColor: '#E5E7EB' }}></span>
-                <span className="legend-label">
-                  Bajo: {datosDona.bajo_pct}% {datosDona.bajo_cnt !== undefined ? `(${datosDona.bajo_cnt.toLocaleString('es-MX')})` : ''}
-                </span>
-              </div>
-            </div>
+          <div style={{ height: '280px', width: '100%', borderRadius: '8px', overflow: 'hidden', marginTop: '16px' }}>
+            <iframe
+              src="http://localhost:5000/dash/dashboard/donut/"
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              title="Urgencia de Servicios"
+            />
           </div>
 
           <div className="donut-download-btn-wrapper">
