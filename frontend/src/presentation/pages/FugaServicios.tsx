@@ -239,7 +239,7 @@ export const FugaServicios: React.FC = () => {
 
         <div className={styles.chartsSection}>
           <iframe
-            src="http://localhost:5000/dash/fuga/side/"
+            src={`${API_BASE_URL}/dash/fuga/side/`}
             className={styles.dashIframe}
             title="Dash Graphs"
           ></iframe>
@@ -248,7 +248,7 @@ export const FugaServicios: React.FC = () => {
 
       <div className={styles.bottomChartSection}>
         <iframe
-          src="http://localhost:5000/dash/fuga/bottom/"
+          src={`${API_BASE_URL}/dash/fuga/bottom/`}
           className={styles.dashIframeBottom}
           title="Distribution Graph"
         ></iframe>
