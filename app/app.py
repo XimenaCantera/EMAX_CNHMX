@@ -16,6 +16,13 @@ servidor_flask = Flask(__name__)
 CORS(servidor_flask)
 app = servidor_flask
 
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
 DIRECTORIO_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIRECTORIO_ARCHIVOS_LIMPIOS = os.path.join(DIRECTORIO_BASE, 'data', 'ArchivosLimpios')
 
