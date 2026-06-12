@@ -313,10 +313,9 @@ export const Dashboard: React.FC = () => {
       <div className="main-grid">
         <div className="card chart-card">
           <h3 className="card-title">URGENCIA DE SERVICIOS</h3>
-
           <div style={{ height: '280px', width: '100%', borderRadius: '8px', overflow: 'hidden', marginTop: '16px' }}>
             <iframe
-              src="/dash/dashboard/donut/"
+              src={`${API_BASE_URL}/dash/dashboard/donut/`}
               style={{ width: '100%', height: '100%', border: 'none' }}
               title="Urgencia de Servicios"
             />
@@ -324,7 +323,7 @@ export const Dashboard: React.FC = () => {
 
           <div className="donut-download-btn-wrapper">
             <a
-              href="/api/download/tabla-riesgo"
+              href={`${API_BASE_URL}/api/download/tabla-riesgo`}
               download="tabla_riesgo_unidades.xlsx"
               className="btn btn-outline donut-download-btn"
             >
