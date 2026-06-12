@@ -238,8 +238,9 @@ def init_riesgo_operativo(server):
 
     def serve_layout():
         maint_path = os.path.join(CLEAN_FILES_DIR, 'new_mantenimientos.xlsx')
+        maint_csv = os.path.join(CLEAN_FILES_DIR, 'new_mantenimientos.csv')
         
-        if not os.path.exists(maint_path):
+        if not os.path.exists(maint_path) and not os.path.exists(maint_csv):
             return html.Div([
                 html.Div([
                     # Mensaje por si no hay datos
